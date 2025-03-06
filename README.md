@@ -89,17 +89,32 @@ The only required field for a target is `url`. All other fields have sensible de
 The service exports the following metrics to Datadog:
 
 ### URL Health Metrics
-- `url_monitor.url.up` - gauge (0 or 1) indicating if the target is up
-- `url_monitor.url.response_time_ms` - histogram of response times in milliseconds
 
-### SSL Certificate Metrics (for HTTPS URLs with certificate checking enabled)
-- `url_monitor.ssl.valid` - gauge (0 or 1) indicating if the certificate is valid
-- `url_monitor.ssl.days_until_expiry` - gauge indicating days until certificate expiry
+| Metric Name | Type | Description | When Reported |
+|-------------|------|-------------|---------------|
+| `url_monitor.url.up` | Gauge | 0 or 1 indicating if the target is up (2xx response code) | Every check |
+| `url_monitor.url.response_time_ms` | Histogram | Response time in milliseconds | Every successful check |
 
-All metrics include tags:
-- `url:https://example.com` - the URL being monitored
-- `name:Example Site` - the target name
-- Any custom labels defined in the target configuration
+### SSL Certificate Metrics
+
+These metrics are only reported for HTTPS URLs with certificate checking enabled (`check_cert: true`).
+
+| Metric Name | Type | Description | When Reported |
+|-------------|------|-------------|---------------|
+| `url_monitor.ssl.valid` | Gauge | 0 or 1 indicating if the certificate is valid | When certificate check is performed |
+| `url_monitor.ssl.days_until_expiry` | Gauge | Number of days until certificate expiration | When certificate check is performed |
+
+### Metric Tags
+
+All metrics include the following tags:
+
+| Tag | Example | Description |
+|-----|---------|-------------|
+| `url` | `url:https://example.com` | The URL being monitored |
+| `name` | `name:Example Site` | The target name |
+| Custom labels | `env:production`, `service:website` | Any labels defined in the target configuration |
+
+These tags allow you to filter and group metrics in Datadog dashboards and alerts.
 
 ## Certificate Monitoring
 
