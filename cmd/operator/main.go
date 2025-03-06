@@ -18,6 +18,7 @@ import (
 	urlmonitorv1 "github.com/kuskoman/url-datadog-monitor/pkg/api/v1"
 	"github.com/kuskoman/url-datadog-monitor/pkg/controllers"
 	"github.com/kuskoman/url-datadog-monitor/pkg/exporter"
+	"github.com/kuskoman/url-datadog-monitor/pkg/version"
 )
 
 var scheme = runtime.NewScheme()
@@ -36,7 +37,10 @@ func main() {
 	flag.Parse()
 
 	setupLog := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	setupLog.Info("Starting URL monitor operator")
+	setupLog.Info("Starting URL monitor operator",
+		slog.String("version", version.Version),
+		slog.String("git_commit", version.GitCommit),
+		slog.String("build_date", version.BuildDate))
 
 	dogstatsd, err := exporter.NewDatadogClient(*dogstatsdHost, *dogstatsdPort)
 	if err != nil {

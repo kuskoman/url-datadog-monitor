@@ -14,6 +14,54 @@ A Go service that monitors multiple URLs and their SSL certificates, exporting m
 - Configurable certificate verification per target
 - Structured JSON logging using slog
 
+## Docker Images
+
+### Production Images
+
+The project provides several Docker image variants depending on your needs:
+
+#### Scratch-based Images (Minimal)
+- `docker/standalone-scratch.Dockerfile` - Standalone mode with minimal scratch-based image
+- `docker/operator-scratch.Dockerfile` - Operator mode with minimal scratch-based image
+
+#### Alpine-based Images (Debugging Capability)
+- `docker/standalone-alpine.Dockerfile` - Standalone mode with Alpine-based image
+- `docker/operator-alpine.Dockerfile` - Operator mode with Alpine-based image
+
+### Development Image
+- `docker/dev.Dockerfile` - Development image with hot-reload using Air
+
+### Building Docker Images
+
+To build any of the Docker images:
+
+```bash
+# For standalone scratch version
+docker build -t url-datadog-monitor:standalone-scratch -f docker/standalone-scratch.Dockerfile .
+
+# For operator scratch version
+docker build -t url-datadog-monitor:operator-scratch -f docker/operator-scratch.Dockerfile .
+
+# For alpine versions
+docker build -t url-datadog-monitor:standalone-alpine -f docker/standalone-alpine.Dockerfile .
+docker build -t url-datadog-monitor:operator-alpine -f docker/operator-alpine.Dockerfile .
+
+# For development with hot-reload
+docker build -t url-datadog-monitor:dev -f docker/dev.Dockerfile .
+```
+
+#### With Version Information
+
+To include version information in the build:
+
+```bash
+docker build \
+  --build-arg VERSION=$(git describe --tags --always) \
+  --build-arg GIT_COMMIT=$(git rev-parse HEAD) \
+  -t url-datadog-monitor:standalone-scratch \
+  -f docker/standalone-scratch.Dockerfile .
+```
+
 ## Configuration
 
 Configuration is done via a YAML file `config.yaml`. You can define global defaults that apply to all targets, and then override them on a per-target basis:

@@ -11,6 +11,7 @@ import (
 	"github.com/kuskoman/url-datadog-monitor/pkg/config"
 	"github.com/kuskoman/url-datadog-monitor/pkg/exporter"
 	"github.com/kuskoman/url-datadog-monitor/pkg/monitor"
+	"github.com/kuskoman/url-datadog-monitor/pkg/version"
 )
 
 func main() {
@@ -18,7 +19,10 @@ func main() {
 	flag.Parse()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	logger.Info("Starting URL monitor in standalone mode")
+	logger.Info("Starting URL monitor in standalone mode", 
+		slog.String("version", version.Version),
+		slog.String("git_commit", version.GitCommit),
+		slog.String("build_date", version.BuildDate))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

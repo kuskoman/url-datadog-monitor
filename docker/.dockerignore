@@ -1,0 +1,15 @@
+.git
+.github
+.vscode
+docker
+**/node_modules
+**/.DS_Store
+**/__pycache__
+**/*.pyc
+**/tmp
+**/temp
+.gitignore
+.dockerignore
+**/*.md
+!README.md
+**/*.log
