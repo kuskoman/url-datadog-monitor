@@ -1,9 +1,11 @@
-package internal
+package monitor
 
 import (
 	"context"
 	"testing"
 	"time"
+
+	"url-datadog-exporter/pkg/config"
 )
 
 // mockDatadogForCancel implements the DatadogClient interface for testing context cancellation
@@ -17,13 +19,13 @@ func (m mockDatadogForCancel) Histogram(name string, value float64, tags []strin
 	return nil
 }
 
-func TestMonitorTargets_ContextCancellation(t *testing.T) {
+func TestTargets_ContextCancellation(t *testing.T) {
 	// Create a cancelable context
 	ctx, cancel := context.WithCancel(context.Background())
 	
 	// Create a test configuration with targets
-	cfg := &Config{
-		Targets: []Target{
+	cfg := &config.Config{
+		Targets: []config.Target{
 			{
 				Name:     "Test Target",
 				URL:      "http://example.com",
@@ -47,18 +49,18 @@ func TestMonitorTargets_ContextCancellation(t *testing.T) {
 			}
 			close(monitoringDone)
 		}()
-		MonitorTargets(ctx, cfg, mockClient)
+		Targets(ctx, cfg, mockClient)
 	}()
 	
 	// Cancel the context after a short time
 	time.Sleep(100 * time.Millisecond)
 	cancel()
 	
-	// The test passes if MonitorTargets returns within a reasonable time
+	// The test passes if Targets returns within a reasonable time
 	select {
 	case <-monitoringDone:
 		// Success - monitoring stopped after context cancellation
 	case <-time.After(2 * time.Second):
-		t.Fatal("MonitorTargets didn't respect context cancellation within timeout")
+		t.Fatal("Targets didn't respect context cancellation within timeout")
 	}
 }

@@ -1,4 +1,4 @@
-package exporters
+package exporter
 
 import (
 	"net"

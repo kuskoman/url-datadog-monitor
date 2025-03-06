@@ -7,23 +7,22 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"url-datadog-exporter/exporters"
-	"url-datadog-exporter/internal"
+	"url-datadog-exporter/pkg/config"
+	"url-datadog-exporter/pkg/exporter"
+	"url-datadog-exporter/pkg/monitor"
 )
 
+const defaultConfigPath = "config.yaml"
+
 func main() {
-	// Parse command line flags
-	configPath := flag.String("config", "config.yaml", "Path to configuration file")
+	configPath := flag.String("config", defaultConfigPath, "Path to configuration file")
 	flag.Parse()
 
-	// Create structured logger
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	// Set up context with cancellation for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Set up signal handling for graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	go func() {
@@ -32,15 +31,13 @@ func main() {
 		cancel()
 	}()
 
-	// Load configuration from YAML file
-	cfg, err := internal.LoadConfig(*configPath)
+	cfg, err := config.Load(*configPath)
 	if err != nil {
 		logger.Error("Failed to load config", slog.Any("error", err))
 		os.Exit(1)
 	}
 
-	// Initialize Datadog client
-	dogstatsd, err := exporters.NewDatadogClient(
+	dogstatsd, err := exporter.NewDatadogClient(
 		cfg.Datadog.Host, 
 		cfg.Datadog.Port,
 	)
@@ -53,8 +50,7 @@ func main() {
 	logger.Info("Starting URL monitor service", 
 		slog.Int("target_count", len(cfg.Targets)))
 	
-	// Start the monitoring loop with context for graceful shutdown
-	internal.MonitorTargets(ctx, cfg, dogstatsd)
+	monitor.Targets(ctx, cfg, dogstatsd)
 	
 	logger.Info("URL monitor service shutdown complete")
 }

@@ -1,4 +1,4 @@
-package internal
+package monitor
 
 import (
 	"context"
@@ -6,11 +6,25 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"time"
+	
+	"url-datadog-exporter/pkg/certcheck"
+	"url-datadog-exporter/pkg/config"
 )
 
-// DatadogClient represents the Datadog metrics client.
-type DatadogClient interface {
+const (
+	MetricURLUp             = "url.up"
+	MetricResponseTime      = "url.response_time_ms"
+	MetricSSLValid          = "ssl.valid"
+	MetricSSLDaysToExpiry   = "ssl.days_until_expiry"
+	HealthyStatusMin        = 200
+	HealthyStatusMax        = 300
+	TickInterval            = 1 * time.Second
+)
+
+// MetricsClient represents the interface for sending metrics
+type MetricsClient interface {
 	Gauge(name string, value float64, tags []string) error
 	Histogram(name string, value float64, tags []string) error
 }
@@ -26,13 +40,12 @@ func NopLogger() *slog.Logger {
 }
 
 // CheckTarget performs an HTTP request to the target and returns true if the response status is 2xx (OK).
-func CheckTarget(client *http.Client, target Target) (bool, int, time.Duration, error) {
+func CheckTarget(client *http.Client, target config.Target) (bool, int, time.Duration, error) {
 	req, err := http.NewRequest(target.Method, target.URL, nil)
 	if err != nil {
 		return false, 0, 0, err
 	}
 
-	// Add headers
 	for key, value := range target.Headers {
 		req.Header.Set(key, value)
 	}
@@ -46,37 +59,32 @@ func CheckTarget(client *http.Client, target Target) (bool, int, time.Duration, 
 	}
 	defer resp.Body.Close()
 	
-	// Drain the response body to reuse connections
 	_, _ = io.Copy(io.Discard, resp.Body)
 	
 	status := resp.StatusCode
-	// Consider 200-299 as healthy
-	if status >= 200 && status < 300 {
+	if status >= HealthyStatusMin && status < HealthyStatusMax {
 		return true, status, duration, nil
 	}
 	return false, status, duration, nil
 }
 
-// MonitorTarget checks a single target and reports its status to Datadog.
-func MonitorTarget(client *http.Client, target Target, datadog DatadogClient, logger *slog.Logger) {
+// Target checks a single target and reports its status to the metrics client.
+func Target(client *http.Client, target config.Target, metrics MetricsClient, logger *slog.Logger) {
 	up, status, duration, err := CheckTarget(client, target)
 	ms := float64(duration.Milliseconds())
 	
-	// Prepare tags from target labels and name
 	tags := []string{"url:" + target.URL, "name:" + target.Name}
 	for k, v := range target.Labels {
 		tags = append(tags, k+":"+v)
 	}
 
-	// Metrics
 	val := 0.0
 	if up {
 		val = 1.0
 	}
 	
-	if datadog != nil {
-		// Send url.up gauge metric (0 for down, 1 for up)
-		if err := datadog.Gauge("url.up", val, tags); err != nil {
+	if metrics != nil {
+		if err := metrics.Gauge(MetricURLUp, val, tags); err != nil {
 			logger.Warn("Failed to send url.up metric", 
 				slog.String("target", target.Name), 
 				slog.String("url", target.URL),
@@ -85,12 +93,10 @@ func MonitorTarget(client *http.Client, target Target, datadog DatadogClient, lo
 			logger.Info("Successfully sent url.up metric", 
 				slog.String("target", target.Name), 
 				slog.String("url", target.URL),
-				slog.Float64("value", val),
-				slog.String("tags", tags[0]+","+tags[1]))
+				slog.Float64("value", val))
 		}
 		
-		// Send response time histogram metric
-		if err := datadog.Histogram("url.response_time_ms", ms, tags); err != nil {
+		if err := metrics.Histogram(MetricResponseTime, ms, tags); err != nil {
 			logger.Warn("Failed to send url.response_time_ms metric", 
 				slog.String("target", target.Name),
 				slog.String("url", target.URL),
@@ -99,19 +105,16 @@ func MonitorTarget(client *http.Client, target Target, datadog DatadogClient, lo
 			logger.Info("Successfully sent url.response_time_ms metric",
 				slog.String("target", target.Name),
 				slog.String("url", target.URL),
-				slog.Float64("value", ms),
-				slog.String("tags", tags[0]+","+tags[1]))
+				slog.Float64("value", ms))
 		}
 	}
 
-	// Logging with all relevant fields
 	logAttrs := []any{
 		slog.String("target", target.Name),
 		slog.String("url", target.URL),
 		slog.Float64("response_time_ms", ms),
 	}
 	
-	// Add labels as attributes
 	for k, v := range target.Labels {
 		logAttrs = append(logAttrs, slog.String("label_"+k, v))
 	}
@@ -127,48 +130,77 @@ func MonitorTarget(client *http.Client, target Target, datadog DatadogClient, lo
 			logger.Info("Target is healthy", logAttrs...)
 		}
 	}
+	
+	if strings.HasPrefix(strings.ToLower(target.URL), certcheck.SchemeHTTPS) && 
+		target.CheckCert != nil && *target.CheckCert {
+		certDetails, certErr := certcheck.CheckCertificate(target.URL, *target.VerifyCert)
+		
+		if certErr != nil && certDetails == nil {
+			logger.Error("Failed to check certificate",
+				slog.String("target", target.Name),
+				slog.String("url", target.URL),
+				slog.Any("error", certErr))
+		} else if certDetails != nil {
+			certcheck.LogCertificateInfo(logger, target.URL, certDetails)
+			
+			daysUntilExpiry := time.Until(certDetails.NotAfter).Hours() / 24
+			
+			if metrics != nil {
+				certVal := 0.0
+				if certDetails.IsValid {
+					certVal = 1.0
+				}
+				
+				if err := metrics.Gauge(MetricSSLValid, certVal, tags); err != nil {
+					logger.Warn("Failed to send ssl.valid metric", 
+						slog.String("target", target.Name),
+						slog.String("url", target.URL),
+						slog.Any("error", err))
+				}
+				
+				if err := metrics.Gauge(MetricSSLDaysToExpiry, daysUntilExpiry, tags); err != nil {
+					logger.Warn("Failed to send ssl.days_until_expiry metric", 
+						slog.String("target", target.Name),
+						slog.String("url", target.URL),
+						slog.Any("error", err))
+				}
+			}
+		}
+	}
 }
 
-// MonitorTargets starts monitoring all targets with their individual intervals.
+// Targets starts monitoring all targets with their individual intervals.
 // The function will run until the context is canceled.
-func MonitorTargets(ctx context.Context, cfg *Config, datadog DatadogClient) {
-	// We'll create a client for each target with its specific timeout
+func Targets(ctx context.Context, cfg *config.Config, metrics MetricsClient) {
 	logger := NewJSONLogger()
 	
 	logger.Info("Starting target monitoring",
 		slog.Int("target_count", len(cfg.Targets)))
 	
-	// Create a map to track when each target needs to be checked next
 	nextChecks := make(map[string]time.Time)
 	for _, target := range cfg.Targets {
 		nextChecks[target.Name] = time.Now()
 	}
 	
-	// Main monitoring loop
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(TickInterval)
 	defer ticker.Stop()
 	
 	for {
 		select {
 		case <-ctx.Done():
-			// Context was canceled, time to shut down
 			logger.Info("Stopping target monitoring due to context cancellation")
 			return
 			
 		case now := <-ticker.C:
-			// Process each target to see if it needs checking
 			for _, target := range cfg.Targets {
 				nextCheck, ok := nextChecks[target.Name]
 				if !ok || now.After(nextCheck) {
-					// Create a client with the target's specific timeout
 					client := &http.Client{
 						Timeout: time.Duration(target.Timeout) * time.Second,
 					}
 					
-					// Time to check this target
-					MonitorTarget(client, target, datadog, logger)
+					Target(client, target, metrics, logger)
 					
-					// Schedule next check
 					interval := time.Duration(target.Interval) * time.Second
 					nextChecks[target.Name] = now.Add(interval)
 				}

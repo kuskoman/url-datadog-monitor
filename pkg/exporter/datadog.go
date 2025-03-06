@@ -1,10 +1,19 @@
-package exporters
+package exporter
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"strconv"
 	"strings"
+)
+
+const (
+	DefaultNamespace   = "url_monitor."
+	NetworkUDP         = "udp"
+	MetricTypeGauge    = "g"
+	MetricTypeHistogram = "h"
+	MetricTypeCounter  = "c"
 )
 
 // DatadogClient implements the DogStatsD client for sending metrics to Datadog.
@@ -17,7 +26,7 @@ type DatadogClient struct {
 // NewDatadogClient creates a new DogStatsD client for sending metrics.
 func NewDatadogClient(host string, port int) (*DatadogClient, error) {
 	addr := net.JoinHostPort(host, fmt.Sprintf("%d", port))
-	conn, err := net.Dial("udp", addr)
+	conn, err := net.Dial(NetworkUDP, addr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to DogStatsD: %w", err)
 	}
@@ -25,7 +34,7 @@ func NewDatadogClient(host string, port int) (*DatadogClient, error) {
 	return &DatadogClient{
 		conn:      conn,
 		addr:      addr,
-		namespace: "url_monitor.",
+		namespace: DefaultNamespace,
 	}, nil
 }
 
@@ -53,21 +62,21 @@ func (d *DatadogClient) send(name string, value float64, metricType string, tags
 		message.WriteString(strings.Join(tags, ","))
 	}
 
-	_, err := fmt.Fprintf(d.conn, message.String())
+	_, err := io.WriteString(d.conn, message.String())
 	return err
 }
 
 // Gauge sends a gauge metric.
 func (d *DatadogClient) Gauge(name string, value float64, tags []string) error {
-	return d.send(name, value, "g", tags)
+	return d.send(name, value, MetricTypeGauge, tags)
 }
 
 // Histogram sends a histogram metric.
 func (d *DatadogClient) Histogram(name string, value float64, tags []string) error {
-	return d.send(name, value, "h", tags)
+	return d.send(name, value, MetricTypeHistogram, tags)
 }
 
 // Count sends a counter metric.
 func (d *DatadogClient) Count(name string, value float64, tags []string) error {
-	return d.send(name, value, "c", tags)
+	return d.send(name, value, MetricTypeCounter, tags)
 }

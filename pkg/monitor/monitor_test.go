@@ -1,10 +1,12 @@
-package internal
+package monitor
 
 import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+	
+	"url-datadog-exporter/pkg/config"
 )
 
 // mockDatadog is a test implementation of the DatadogClient interface
@@ -41,16 +43,16 @@ func TestCheckTarget_Success(t *testing.T) {
 		// Check that headers are properly set
 		if r.Header.Get("User-Agent") == "TestUserAgent" {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("OK"))
+			_, _ = w.Write([]byte("OK"))
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("Missing headers"))
+			_, _ = w.Write([]byte("Missing headers"))
 		}
 	}))
 	defer server.Close()
 
 	// Create a test target pointing to our test server
-	target := Target{
+	target := config.Target{
 		Name:   "Test Target",
 		URL:    server.URL,
 		Method: "GET",
@@ -85,7 +87,7 @@ func TestCheckTarget_Success(t *testing.T) {
 
 func TestCheckTarget_Error(t *testing.T) {
 	// Create a target with a URL that will cause an error
-	target := Target{
+	target := config.Target{
 		Name:   "Invalid Target",
 		URL:    "http://this-does-not-exist.example",
 		Method: "GET",
@@ -115,12 +117,12 @@ func TestMonitorTarget(t *testing.T) {
 		// Add a small delay to ensure non-zero response time
 		time.Sleep(10 * time.Millisecond)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK"))
 	}))
 	defer server.Close()
 
 	// Create a test target
-	target := Target{
+	target := config.Target{
 		Name:   "Test Monitor",
 		URL:    server.URL,
 		Method: "GET",
@@ -138,7 +140,7 @@ func TestMonitorTarget(t *testing.T) {
 	logger := NopLogger()
 	
 	// Call the function we're testing
-	MonitorTarget(client, target, mock, logger)
+	Target(client, target, mock, logger)
 	
 	// Verify that metrics were sent
 	if mock.gaugesCalled != 1 {

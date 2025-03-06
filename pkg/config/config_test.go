@@ -1,11 +1,11 @@
-package internal
+package config
 
 import (
 	"os"
 	"testing"
 )
 
-func TestLoadConfig(t *testing.T) {
+func TestLoad(t *testing.T) {
 	// Create a temporary YAML file for testing
 	content := []byte(`
 targets:
@@ -35,7 +35,7 @@ datadog:
 	}
 	tmpFile.Close()
 
-	cfg, err := LoadConfig(tmpFile.Name())
+	cfg, err := Load(tmpFile.Name())
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
