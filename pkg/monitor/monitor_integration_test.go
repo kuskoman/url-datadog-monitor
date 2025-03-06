@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"url-datadog-exporter/pkg/config"
+	"url-datadog-monitor/pkg/config"
 )
 
 // mockDatadogForCancel implements the DatadogClient interface for testing context cancellation

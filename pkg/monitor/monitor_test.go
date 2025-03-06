@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 	
-	"url-datadog-exporter/pkg/config"
+	"url-datadog-monitor/pkg/config"
 )
 
 // mockDatadog is a test implementation of the DatadogClient interface

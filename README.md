@@ -1,6 +1,6 @@
-# URL Datadog Exporter
+# URL Datadog Monitor
 
-A Go service that monitors multiple URLs and exports metrics to Datadog.
+A Go service that monitors multiple URLs and their SSL certificates, exporting metrics to Datadog.
 
 ## Features
 
@@ -9,6 +9,9 @@ A Go service that monitors multiple URLs and exports metrics to Datadog.
 - Individual check intervals per target
 - Custom labels for better metric organization
 - Export metrics to Datadog via DogStatsD
+- SSL certificate monitoring with expiration tracking
+- Certificate chain validation options (verify or just check)
+- Configurable certificate verification per target
 - Structured JSON logging using slog
 
 ## Configuration
@@ -98,6 +101,25 @@ All metrics include tags:
 - `name:Example Site` - the target name
 - Any custom labels defined in the target configuration
 
+## Certificate Monitoring
+
+Certificate monitoring is automatically enabled for HTTPS URLs (unless explicitly disabled with `check_cert: false`). The service performs the following checks:
+
+1. **Certificate Presence**: Verifies the server presents a valid SSL certificate
+2. **Hostname Verification**: Checks that the certificate is valid for the requested hostname
+3. **Expiration Check**: Verifies that the certificate is not expired and tracks days until expiry
+4. **Chain Verification** (optional): When `verify_cert: true` is specified, validates the entire certificate chain against the system's trusted CA store
+
+You can control certificate monitoring behavior with two configuration options:
+
+- `check_cert`: Whether to check the certificate at all (defaults to `true` for HTTPS URLs)
+- `verify_cert`: Whether to verify the certificate chain against system CAs (defaults to `false`)
+
+This gives you flexibility to:
+- Fully validate certificates (both `check_cert` and `verify_cert` set to `true`)
+- Check certificate details but don't require valid chain (`check_cert: true, verify_cert: false`)
+- Completely disable certificate checking (`check_cert: false`)
+
 ### Using Certificate Metrics
 
 The SSL certificate metrics are particularly useful for:
@@ -110,10 +132,10 @@ The SSL certificate metrics are particularly useful for:
 
 ```bash
 # Build the service
-go build -o url-datadog-exporter ./cmd
+go build -o url-datadog-monitor ./cmd
 
 # Run the service
-./url-datadog-exporter
+./url-datadog-monitor
 ```
 
 Make sure you have the Datadog agent running locally with DogStatsD enabled.
@@ -125,7 +147,7 @@ Make sure you have the Datadog agent running locally with DogStatsD enabled.
 go test ./...
 
 # Run with a custom config file
-./url-datadog-exporter -config=/path/to/custom-config.yaml
+./url-datadog-monitor -config=/path/to/custom-config.yaml
 ```
 
 ## Project Structure

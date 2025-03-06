@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 	
-	"url-datadog-exporter/pkg/certcheck"
-	"url-datadog-exporter/pkg/config"
+	"url-datadog-monitor/pkg/certcheck"
+	"url-datadog-monitor/pkg/config"
 )
 
 const (

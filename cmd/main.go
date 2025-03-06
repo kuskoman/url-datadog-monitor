@@ -7,9 +7,9 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"url-datadog-exporter/pkg/config"
-	"url-datadog-exporter/pkg/exporter"
-	"url-datadog-exporter/pkg/monitor"
+	"url-datadog-monitor/pkg/config"
+	"url-datadog-monitor/pkg/exporter"
+	"url-datadog-monitor/pkg/monitor"
 )
 
 const defaultConfigPath = "config.yaml"
