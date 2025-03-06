@@ -48,7 +48,7 @@ if [ -f "$CHART_FILE" ]; then
   # Regenerate the Helm README with updated version info
   if command -v helm-docs &> /dev/null; then
     echo "Regenerating Helm chart README..."
-    helm-docs -c charts/url-datadog-monitor
+    ./scripts/helm-readme.sh
   fi
 
   # Commit the changes
