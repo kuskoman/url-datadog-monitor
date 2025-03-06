@@ -31,12 +31,30 @@ The project provides several Docker image variants depending on your needs:
 ### Development Image
 - `docker/dev.Dockerfile` - Development image with hot-reload using Air
 
-### Building Docker Images
+### Pre-built Images
 
-To build any of the Docker images:
+Pre-built images are available on GitHub Container Registry:
 
 ```bash
-# For standalone scratch version
+# Pull the latest standalone version (scratch-based, recommended for production)
+docker pull ghcr.io/kuskoman/url-datadog-monitor:latest-standalone
+
+# Pull the latest operator version (scratch-based, recommended for production)
+docker pull ghcr.io/kuskoman/url-datadog-monitor:latest-operator
+
+# Pull a specific version
+docker pull ghcr.io/kuskoman/url-datadog-monitor:v1.0.0-standalone-scratch
+```
+
+### Building Docker Images Locally
+
+To build any of the Docker images locally:
+
+```bash
+# Using Make (recommended)
+make docker-build
+
+# Or manually for standalone scratch version
 docker build -t url-datadog-monitor:standalone-scratch -f docker/standalone-scratch.Dockerfile .
 
 # For operator scratch version
@@ -271,19 +289,39 @@ controller-gen crd:trivialVersions=true paths="./pkg/api/..." output:crd:artifac
 
 ## Development
 
+### Running Locally
+
 ```bash
+# Build both binaries
+make build
+
 # Run tests
-go test ./...
+make test
 
 # Install the CRD
-kubectl apply -f config/crd/bases/url-datadog-monitor.kuskoman.github.com_urlmonitors.yaml
+kubectl apply -f config/crd/bases/urlmonitoring.kuskoman.github.com_urlmonitors.yaml
 
 # Run with a custom config file (standalone mode)
-./url-datadog-monitor-standalone -config=/path/to/custom-config.yaml
+./bin/url-datadog-monitor-standalone -config=/path/to/custom-config.yaml
 
 # Run as a Kubernetes operator with custom settings
-./url-datadog-monitor-operator --dogstatsd-host=localhost --dogstatsd-port=8125
+./bin/url-datadog-monitor-operator --dogstatsd-host=localhost --dogstatsd-port=8125
 ```
+
+### Creating a Release
+
+To create a new release, use the provided script:
+
+```bash
+./scripts/release.sh v1.0.0
+```
+
+This will:
+1. Create and push a git tag
+2. Trigger the GitHub Actions release workflow
+3. Build binaries for all supported platforms
+4. Build Docker images and push them to GitHub Container Registry
+5. Create a GitHub release with attached binaries
 
 ## Project Structure
 
