@@ -1,0 +1,33 @@
+suite: service tests
+templates:
+  - service.yaml
+tests:
+  - it: should render service correctly
+    asserts:
+      - isKind:
+          of: Service
+      - equal:
+          path: spec.type
+          value: ClusterIP
+      - equal:
+          path: spec.ports[0].name
+          value: metrics
+      - equal:
+          path: spec.ports[1].name
+          value: healthz
+
+  - it: should set custom service type when specified
+    set:
+      service.type: NodePort
+    asserts:
+      - equal:
+          path: spec.type
+          value: NodePort
+
+  - it: should set custom port when specified
+    set:
+      service.port: 9090
+    asserts:
+      - equal:
+          path: spec.ports[0].port
+          value: 9090

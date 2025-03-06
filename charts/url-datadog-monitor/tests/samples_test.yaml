@@ -1,0 +1,57 @@
+suite: samples tests
+templates:
+  - samples.yaml
+tests:
+  - it: should create sample URLMonitors when enabled in operator mode
+    set:
+      mode: operator
+      operator.installSamples: true
+      sampleURLMonitors:
+        - name: example-com
+          spec:
+            url: https://example.com
+            method: GET
+            interval: 60
+        - name: google-com
+          spec:
+            url: https://google.com
+            method: GET
+            interval: 30
+    asserts:
+      - hasDocuments:
+          count: 2
+      - isKind:
+          of: URLMonitor
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: example-com
+        documentIndex: 0
+      - equal:
+          path: spec.url
+          value: https://example.com
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: google-com
+        documentIndex: 1
+      - equal:
+          path: spec.url
+          value: https://google.com
+        documentIndex: 1
+
+  - it: should not create sample URLMonitors when disabled
+    set:
+      mode: operator
+      operator.installSamples: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should not create sample URLMonitors in standalone mode
+    set:
+      mode: standalone
+      operator.installSamples: true
+    asserts:
+      - hasDocuments:
+          count: 0

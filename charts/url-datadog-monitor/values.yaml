@@ -1,0 +1,176 @@
+# Default values for url-datadog-monitor.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+## Deployment mode - can be "operator" or "standalone"
+## Operator mode: Runs as a Kubernetes operator with CRDs
+## Standalone mode: Runs as a standalone application with config file
+mode: operator
+
+replicaCount: 1
+
+image:
+  # Container image repository
+  repository: ghcr.io/kuskoman/url-datadog-monitor
+  # Image tag. Can be "standalone-scratch", "operator-scratch", "standalone-alpine", "operator-alpine", etc.
+  # If empty, defaults to appropriate tag for deployment mode (latest-operator-scratch or latest-standalone-scratch)
+  tag: ""
+  # Image pull policy
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# Reference to Datadog agent for sending metrics
+datadog:
+  # Host where Datadog agent is running (Kubernetes service name)
+  host: datadog.datadog.svc.cluster.local
+  # Port for the Datadog DogStatsD protocol
+  port: 8125
+
+# Standalone mode configuration
+# Only used when mode == "standalone"
+standalone:
+  config:
+    defaults:
+      method: "GET"
+      interval: 60
+      timeout: 10
+      check_cert: true
+      verify_cert: false
+      headers:
+        User-Agent: "Datadog-Monitor"
+      labels:
+        app: "url-monitor"
+    
+    targets:
+      - name: "Example Site"
+        url: "https://example.com"
+        labels:
+          env: "production"
+          service: "website"
+        interval: 30
+        timeout: 5
+      - name: "Google"
+        url: "https://google.com"
+        interval: 60
+        timeout: 5
+        verify_cert: true
+    
+    datadog:
+      host: "${DATADOG_HOST}"
+      port: ${DATADOG_PORT}
+
+# Operator mode configuration (only used when mode == "operator")
+operator:
+  # Whether to create the Custom Resource Definition
+  # Set to false if you want to install CRDs separately or use existing ones
+  createCRD: true
+  # Whether to install sample URLMonitor resources
+  # Set to true to deploy the sample monitors defined in sampleURLMonitors
+  installSamples: false
+  # Role-based access control settings
+  rbac:
+    # Whether to create necessary RBAC resources for the operator
+    create: true
+  # Leader election for high availability deployments with multiple replicas
+  leaderElection:
+    # Whether to enable leader election (recommended for HA setups)
+    enabled: true
+    # Resource name used for leader election coordination
+    resourceName: "url-datadog-monitor-operator"
+
+# Sample URLMonitor resources to be created when operator.installSamples is true
+# These samples demonstrate how to monitor different URLs with various settings
+sampleURLMonitors:
+  - name: example-com
+    spec:
+      url: https://example.com
+      method: GET
+      interval: 60
+      timeout: 10
+      checkCert: true
+      verifyCert: false
+      labels:
+        env: production
+        service: website
+  - name: google-com
+    spec:
+      url: https://google.com
+      method: GET
+      interval: 30
+      timeout: 5
+      checkCert: true
+      verifyCert: true
+      labels:
+        env: production
+        service: search
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+    - ALL
+  # allowPrivilegeEscalation: false
+
+service:
+  type: ClusterIP
+  port: 8080
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 10m
+    memory: 64Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Health check probe configuration for Kubernetes
+probes:
+  # Liveness probe to detect and restart unhealthy containers
+  liveness:
+    # Whether to enable liveness probe
+    enabled: true
+    # Number of seconds to wait before first probe
+    initialDelaySeconds: 10
+    # How often to perform the probe
+    periodSeconds: 30
+    # Number of seconds after which the probe times out
+    timeoutSeconds: 5
+    # Number of failures before container is restarted
+    failureThreshold: 3
+  # Readiness probe to determine if container is ready to receive traffic
+  readiness:
+    # Whether to enable readiness probe
+    enabled: true
+    # Number of seconds to wait before first probe
+    initialDelaySeconds: 5
+    # How often to perform the probe
+    periodSeconds: 10
+    # Number of seconds after which the probe times out
+    timeoutSeconds: 5
+    # Number of failures before container is marked as not ready
+    failureThreshold: 2

@@ -1,0 +1,14 @@
+{{- if and (eq .Values.mode "operator") .Values.operator.installSamples -}}
+{{- range .Values.sampleURLMonitors }}
+---
+apiVersion: urlmonitoring.kuskoman.github.com/v1
+kind: URLMonitor
+metadata:
+  name: {{ .name }}
+  labels:
+    {{- include "url-datadog-monitor.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: sample
+spec:
+  {{- toYaml .spec | nindent 2 }}
+{{- end }}
+{{- end }}

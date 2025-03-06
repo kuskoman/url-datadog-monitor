@@ -1,0 +1,106 @@
+# {{ .Name }}
+
+{{ template "chart.deprecationWarning" . }}
+
+{{ template "chart.badgesSection" . }}
+
+{{ template "chart.description" . }}
+
+{{ template "chart.homepageLine" . }}
+
+## Installation
+
+### Add Helm Repository
+
+```bash
+helm repo add url-datadog-monitor https://kuskoman.github.io/url-datadog-monitor
+helm repo update
+```
+
+### Operator Mode (Default)
+
+Deploy as an operator to monitor URLs defined by URLMonitor custom resources:
+
+```bash
+helm install url-monitor url-datadog-monitor/url-datadog-monitor \
+  --set datadog.host=datadog-agent.datadog.svc.cluster.local \
+  --set datadog.port=8125
+```
+
+After installation, create URLMonitor resources:
+
+```yaml
+apiVersion: urlmonitoring.kuskoman.github.com/v1
+kind: URLMonitor
+metadata:
+  name: example-com
+spec:
+  url: https://example.com
+  method: GET
+  interval: 60
+  timeout: 10
+  checkCert: true
+  verifyCert: false
+  labels:
+    env: production
+    service: website
+```
+
+### Standalone Mode
+
+Deploy in standalone mode with a predefined list of target URLs:
+
+```bash
+helm install url-monitor url-datadog-monitor/url-datadog-monitor \
+  --set mode=standalone \
+  --set datadog.host=datadog-agent.datadog.svc.cluster.local \
+  --set datadog.port=8125
+```
+
+## Configuration Modes
+
+The chart supports two operational modes:
+
+- **Operator Mode** (default): Runs as a Kubernetes operator, watching URLMonitor custom resources to dynamically manage URL monitoring
+- **Standalone Mode**: Runs with a static configuration defined in values.yaml
+
+## Requirements
+
+- Kubernetes: >= 1.21.0-0
+- Helm: >= 3.3.0
+- A running Datadog Agent with DogStatsD enabled
+
+## Values
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+{{- range .Values }}
+{{- if ne (typeOf .) "map[string]interface {}" }}
+| {{ .Key }} | {{ .Type }} | {{ .Default }} | {{ if .Description }}{{ .Description }}{{ else }}{{ .AutoDescription }}{{ end }} |
+{{- else }}
+| {{ .Key }} | {{ .Type }} | {{ if .Default }}{{ .Default }}{{ else }}{{ .AutoDefault }}{{ end }} | {{ if .Description }}{{ .Description }}{{ else }}{{ if eq .Key "mode" }}Deployment mode: "operator" or "standalone"{{ else if eq .Key "datadog" }}Datadog agent configuration{{ else if eq .Key "image" }}Container image configuration{{ else if eq .Key "serviceAccount" }}Service account configuration{{ else if eq .Key "securityContext" }}Security context settings{{ else if eq .Key "resources" }}Resource limits and requests{{ else if eq .Key "operator" }}Operator mode configuration{{ else if eq .Key "standalone" }}Standalone mode configuration{{ else if eq .Key "sampleURLMonitors" }}Sample URLMonitor resources for operator mode{{ else if eq .Key "probes" }}Health check probe configuration{{ else if eq .Key "service" }}Kubernetes service configuration{{ else }}{{ .AutoDescription }}{{ end }}{{ end }} |
+{{- end }}
+{{- end }}
+
+### Notable Configuration Options
+
+#### General Settings
+- `mode`: Choose between "operator" (default) or "standalone" mode
+- `datadog.host`: Hostname of the Datadog agent
+- `datadog.port`: Port for DogStatsD on the Datadog agent
+
+#### Operator Mode Settings
+- `operator.createCRD`: Whether to create the URLMonitor CRD (set to false if installed separately)
+- `operator.installSamples`: Deploy sample URLMonitor resources
+- `operator.rbac.create`: Create RBAC resources for the operator
+- `operator.leaderElection`: Configuration for leader election in multi-replica deployments
+
+#### Standalone Mode Settings
+- `standalone.config`: Configuration for the standalone mode, with targets to monitor
+
+#### Container Settings
+- `image.tag`: Specify a particular image tag (defaults to appropriate tag for selected mode)
+- `resources`: Configure resource requests and limits
+- `securityContext`: Customize security settings
+
+{{ template "helm-docs.versionFooter" . }}

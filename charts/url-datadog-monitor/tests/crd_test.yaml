@@ -1,0 +1,38 @@
+suite: crd tests
+templates:
+  - crd.yaml
+tests:
+  - it: should create CRD in operator mode when enabled
+    set:
+      mode: operator
+      operator.createCRD: true
+    asserts:
+      - isKind:
+          of: CustomResourceDefinition
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.name
+          value: urlmonitors.urlmonitoring.kuskoman.github.com
+      - equal:
+          path: spec.names.kind
+          value: URLMonitor
+      - equal:
+          path: spec.scope
+          value: Namespaced
+
+  - it: should not create CRD in standalone mode
+    set:
+      mode: standalone
+      operator.createCRD: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should not create CRD when disabled in operator mode
+    set:
+      mode: operator
+      operator.createCRD: false
+    asserts:
+      - hasDocuments:
+          count: 0

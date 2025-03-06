@@ -1,0 +1,10 @@
+should include leader election permissions when enabled:
+  1: |
+    <nil>
+  2: |
+    <nil>
+should not include leader election permissions when disabled:
+  1: |
+    <nil>
+  2: |
+    <nil>

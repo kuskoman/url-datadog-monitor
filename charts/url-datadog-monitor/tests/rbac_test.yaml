@@ -1,0 +1,61 @@
+suite: rbac tests
+templates:
+  - rbac.yaml
+tests:
+  - it: should create rbac resources for operator mode with rbac enabled
+    set:
+      mode: operator
+      operator.rbac.create: true
+    asserts:
+      - hasDocuments:
+          count: 2
+      - isKind:
+          of: ClusterRole
+        documentIndex: 0
+      - isKind:
+          of: ClusterRoleBinding
+        documentIndex: 1
+      - equal:
+          path: metadata.name
+          documentIndex: 0
+          value: RELEASE-NAME-url-datadog-monitor
+      - equal:
+          path: metadata.name
+          documentIndex: 1
+          value: RELEASE-NAME-url-datadog-monitor
+
+  - it: should not create rbac resources when disabled
+    set:
+      mode: operator
+      operator.rbac.create: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should not create rbac resources in standalone mode
+    set:
+      mode: standalone
+      operator.rbac.create: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should include leader election permissions when enabled
+    set:
+      mode: operator
+      operator.rbac.create: true
+      operator.leaderElection.enabled: true
+    asserts:
+      - matchSnapshotRaw:
+          path: rules
+          documentIndex: 0
+
+  - it: should not include leader election permissions when disabled
+    set:
+      mode: operator
+      operator.rbac.create: true
+      operator.leaderElection.enabled: false
+    asserts:
+      - matchSnapshotRaw:
+          path: rules
+          documentIndex: 0

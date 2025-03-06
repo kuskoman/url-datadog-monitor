@@ -1,0 +1,35 @@
+suite: config tests
+templates:
+  - config.yaml
+tests:
+  - it: should create configmap in standalone mode
+    set:
+      mode: standalone
+      standalone.config:
+        defaults:
+          method: GET
+          interval: 30
+        targets:
+          - name: Test Site
+            url: https://test.com
+        datadog:
+          host: "${DATADOG_HOST}"
+          port: ${DATADOG_PORT}
+    asserts:
+      - isKind:
+          of: ConfigMap
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-url-datadog-monitor-config
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: "url: https://test.com"
+
+  - it: should not create configmap in operator mode
+    set:
+      mode: operator
+    asserts:
+      - hasDocuments:
+          count: 0

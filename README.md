@@ -242,7 +242,7 @@ go build -o url-datadog-monitor-operator ./cmd/operator
 The operator uses a URLMonitor custom resource definition:
 
 ```yaml
-apiVersion: url-datadog-monitor.kuskoman.github.com/v1
+apiVersion: urlmonitoring.kuskoman.github.com/v1
 kind: URLMonitor
 metadata:
   name: example-com
@@ -261,7 +261,7 @@ spec:
 To deploy the CRD:
 
 ```bash
-kubectl apply -f config/crd/bases/url-datadog-monitor.kuskoman.github.com_urlmonitors.yaml
+kubectl apply -f config/crd/bases/urlmonitoring.kuskoman.github.com_urlmonitors.yaml
 ```
 
 To create a URLMonitor:
@@ -269,6 +269,46 @@ To create a URLMonitor:
 ```bash
 kubectl apply -f config/samples/urlmonitor_v1_samples.yaml
 ```
+
+## Helm Chart
+
+The project includes a Helm chart to easily deploy URL Datadog Monitor in Kubernetes environments. The chart supports both operator and standalone modes.
+
+### Installing with Helm
+
+```bash
+# Add the Helm repository (when published)
+# helm repo add url-datadog-monitor https://kuskoman.github.io/url-datadog-monitor
+# helm repo update
+
+# For now, install from local chart
+# Operator Mode (Default)
+helm install url-monitor ./charts/url-datadog-monitor \
+  --set datadog.host=datadog-agent.datadog.svc.cluster.local \
+  --set datadog.port=8125
+
+# Standalone Mode
+helm install url-monitor ./charts/url-datadog-monitor \
+  --set mode=standalone \
+  --set datadog.host=datadog-agent.datadog.svc.cluster.local \
+  --set datadog.port=8125
+```
+
+### Helm Chart Testing
+
+The Helm chart includes comprehensive unit tests to ensure correct behavior:
+
+```bash
+# Install the Helm unittest plugin if needed
+helm plugin install https://github.com/quintush/helm-unittest
+
+# Run the tests
+helm unittest ./charts/url-datadog-monitor
+```
+
+The GitHub CI pipeline also tests the Helm chart in a real Kubernetes environment using KinD (Kubernetes in Docker) to verify the operator functionality with actual URLMonitor resources.
+
+See the [Helm chart README](./charts/url-datadog-monitor/README.md) for more details on available options and configurations.
 
 ## Kubernetes API Generation
 

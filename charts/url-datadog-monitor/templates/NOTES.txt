@@ -1,0 +1,45 @@
+URL Datadog Monitor has been deployed successfully!
+
+Mode: {{ .Values.mode | title }}
+
+{{- if eq .Values.mode "operator" }}
+The URL Datadog Monitor operator is now watching for URLMonitor resources.
+
+{{- if .Values.operator.installSamples }}
+Sample URL monitors have been created:
+{{- range .Values.sampleURLMonitors }}
+- {{ .name }}
+{{- end }}
+{{- else }}
+To create a URLMonitor resource, use the following as a template:
+
+apiVersion: urlmonitoring.kuskoman.github.com/v1
+kind: URLMonitor
+metadata:
+  name: example
+spec:
+  url: https://example.com
+  method: GET
+  interval: 60
+  timeout: 10
+  checkCert: true
+  verifyCert: false
+  labels:
+    env: production
+    service: website
+{{- end }}
+
+{{- else }}
+The URL Datadog Monitor is running in standalone mode with the following configuration:
+
+Targets:
+{{- range .Values.standalone.config.targets }}
+- {{ .name }}: {{ .url }}
+{{- end }}
+
+{{- end }}
+
+To access the metrics endpoint:
+  kubectl port-forward svc/{{ include "url-datadog-monitor.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+
+Metrics will be sent to Datadog agent at: {{ .Values.datadog.host }}:{{ .Values.datadog.port }}

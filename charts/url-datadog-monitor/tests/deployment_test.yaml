@@ -1,0 +1,87 @@
+suite: deployment tests
+templates:
+  - deployment.yaml
+tests:
+  - it: should render deployment correctly in operator mode
+    set:
+      mode: operator
+      datadog.host: datadog-agent.datadog
+      datadog.port: 8125
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/kuskoman/url-datadog-monitor:latest-operator-scratch
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --dogstatsd-host=datadog-agent.datadog
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --dogstatsd-port=8125
+      - isSubset:
+          path: spec.template.spec.containers[0].securityContext
+          content:
+            runAsNonRoot: true
+            runAsUser: 65534
+      # In operator mode, we should not have volumes
+      - isNull:
+          path: spec.template.spec.volumes
+  
+  - it: should render deployment correctly in standalone mode
+    set:
+      mode: standalone
+      datadog.host: datadog-agent.datadog
+      datadog.port: 8125
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/kuskoman/url-datadog-monitor:latest-standalone-scratch
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: -config=/config/config.yaml
+      - equal:
+          path: spec.template.spec.containers[0].env[0].name
+          value: DATADOG_HOST
+      - equal:
+          path: spec.template.spec.containers[0].env[0].value
+          value: datadog-agent.datadog
+      # In standalone mode, we should have volumes
+      - isNotNull:
+          path: spec.template.spec.volumes
+      - isNotNull:
+          path: spec.template.spec.containers[0].volumeMounts
+
+  - it: should use custom image when specified
+    set:
+      mode: operator
+      image.tag: custom-tag
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/kuskoman/url-datadog-monitor:custom-tag
+
+  - it: should set resources correctly
+    set:
+      resources:
+        limits:
+          cpu: 200m
+          memory: 256Mi
+        requests:
+          cpu: 50m
+          memory: 128Mi
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.cpu
+          value: 200m
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.memory
+          value: 256Mi
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.cpu
+          value: 50m
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.memory
+          value: 128Mi

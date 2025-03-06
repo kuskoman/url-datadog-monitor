@@ -1,6 +1,6 @@
 # Binaries for programs and plugins
-url-datadog-exporter
-url-datadog-monitor*
+/url-datadog-exporter
+/url-datadog-monitor*
 *.exe
 *.exe~
 *.dll
