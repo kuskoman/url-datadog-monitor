@@ -1,9 +1,6 @@
-version: "3.8"
-
 services:
   datadog-agent:
     image: gcr.io/datadoghq/agent:latest
-    container_name: datadog-agent
     restart: unless-stopped
     environment:
       DD_API_KEY: "${DD_API_KEY:-00000000000000000000000000000000}"
@@ -24,9 +21,8 @@ services:
       - /proc/:/host/proc/:ro
       - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
 
-  url-datadog-exporter:
+  monitor:
     build: .
-    container_name: url-datadog-exporter
     depends_on:
       - datadog-agent
     volumes:
