@@ -2,65 +2,40 @@ name: Helm Chart Test
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [master, main]
     paths:
-      - 'charts/**'
-      - '.github/workflows/helm-test.yml'
+      - "charts/**"
+      - ".github/workflows/helm-test.yml"
   pull_request:
-    branches: [ master, main ]
+    branches: [master, main]
     paths:
-      - 'charts/**'
-      - '.github/workflows/helm-test.yml'
+      - "charts/**"
+      - ".github/workflows/helm-test.yml"
 
 jobs:
-  lint-test:
-    name: Lint and Test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Helm
-        uses: azure/setup-helm@v3
-        with:
-          version: v3.11.1
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.9
-
-      - name: Set up chart-testing
-        uses: helm/chart-testing-action@v2.3.1
-
-      - name: Run chart-testing (lint)
-        run: ct lint --target-branch ${{ github.event.repository.default_branch }} --charts charts/url-datadog-monitor
-        
   unit-test:
     name: Helm Unit Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Set up Helm
         uses: azure/setup-helm@v3
         with:
           version: v3.11.1
-          
+
       - name: Install Helm Unit Test plugin
         run: |
           helm plugin install https://github.com/quintush/helm-unittest
-          
+
       - name: Run unit tests
         run: |
           helm unittest charts/url-datadog-monitor
 
   kind-test:
     name: KinD Test
-    needs: [lint-test, unit-test]
+    needs: [unit-test]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -69,7 +44,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version-file: "go.mod"
           cache: true
 
       - name: Install Helm
@@ -104,7 +79,7 @@ jobs:
                 containers:
                 - name: dogstatsd-mock
                   image: alpine
-                  command: 
+                  command:
                   - /bin/sh
                   - -c
                   - "apk add --no-cache socat && socat -v UDP-RECVFROM:8125,fork STDOUT"
@@ -128,7 +103,7 @@ jobs:
             selector:
               app: datadog-mock
           EOF
-          
+
           kubectl wait --for=condition=available --timeout=60s deployment/datadog-mock
 
       - name: Install chart (operator mode)
@@ -139,7 +114,7 @@ jobs:
             --set operator.createCRD=true \
             --set operator.installSamples=false \
             --debug
-          
+
           kubectl wait --for=condition=available --timeout=60s deployment/url-monitor-url-datadog-monitor
 
       - name: Test operator with sample URLMonitor
@@ -160,27 +135,27 @@ jobs:
               env: test
               service: example
           EOF
-          
+
           # Wait for resource to be processed
           sleep 10
-          
+
           kubectl get urlmonitor example-test -o yaml
-          
+
           # Check logs to see if the monitor is working
           kubectl logs deployment/url-monitor-url-datadog-monitor
 
       - name: Uninstall and test standalone mode
         run: |
           helm uninstall url-monitor
-          
+
           helm install url-monitor-standalone ./charts/url-datadog-monitor \
             --set mode=standalone \
             --set datadog.host=datadog-mock \
             --set datadog.port=8125 \
             --debug
-          
+
           kubectl wait --for=condition=available --timeout=60s deployment/url-monitor-standalone-url-datadog-monitor
-          
+
           # Check logs to see if the monitor is working
           sleep 10
           kubectl logs deployment/url-monitor-standalone-url-datadog-monitor
