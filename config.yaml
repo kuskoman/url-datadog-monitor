@@ -1,0 +1,18 @@
+targets:
+  - name: "Example Site"
+    url: "https://example.com"
+    method: "GET"
+    headers:
+      User-Agent: "Datadog-Monitor"
+    labels:
+      env: "production"
+      service: "website"
+    interval: 30
+  - name: "Httpbin OK"
+    url: "http://httpbin.org/status/200"
+    interval: 60
+    labels:
+      env: "testing"
+datadog:
+  host: "127.0.0.1"
+  port: 8125
