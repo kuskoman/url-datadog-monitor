@@ -13,6 +13,12 @@ targets:
     interval: 60
     labels:
       env: "testing"
+  - name: "Httpbin Error"
+    url: "http://httpbin.org/status/500"
+    interval: 30
+    labels:
+      env: "testing"
+      status: "error-test"
 datadog:
-  host: "127.0.0.1"
+  host: "datadog-agent"
   port: 8125

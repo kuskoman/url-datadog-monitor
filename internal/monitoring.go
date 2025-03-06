@@ -74,18 +74,32 @@ func MonitorTarget(client *http.Client, target Target, datadog DatadogClient, lo
 	}
 	
 	if datadog != nil {
+		// Send url.up gauge metric (0 for down, 1 for up)
 		if err := datadog.Gauge("url.up", val, tags); err != nil {
 			logger.Warn("Failed to send url.up metric", 
 				slog.String("target", target.Name), 
 				slog.String("url", target.URL),
 				slog.Any("error", err))
+		} else {
+			logger.Info("Successfully sent url.up metric", 
+				slog.String("target", target.Name), 
+				slog.String("url", target.URL),
+				slog.Float64("value", val),
+				slog.String("tags", tags[0]+","+tags[1]))
 		}
 		
+		// Send response time histogram metric
 		if err := datadog.Histogram("url.response_time_ms", ms, tags); err != nil {
 			logger.Warn("Failed to send url.response_time_ms metric", 
 				slog.String("target", target.Name),
 				slog.String("url", target.URL),
 				slog.Any("error", err))
+		} else {
+			logger.Info("Successfully sent url.response_time_ms metric",
+				slog.String("target", target.Name),
+				slog.String("url", target.URL),
+				slog.Float64("value", ms),
+				slog.String("tags", tags[0]+","+tags[1]))
 		}
 	}
 

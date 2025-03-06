@@ -6,14 +6,16 @@ services:
     container_name: datadog-agent
     restart: unless-stopped
     environment:
-      DD_API_KEY: "${DD_API_KEY}"
+      DD_API_KEY: "${DD_API_KEY:-00000000000000000000000000000000}"
       DD_SITE: "${DD_SITE:-datadoghq.com}"
-      DD_LOGS_ENABLED: "false"
-      DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL: "false"
+      DD_LOGS_ENABLED: "true"
+      DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL: "true"
       DD_DOGSTATSD_NON_LOCAL_TRAFFIC: "true"
+      DD_DOGSTATSD_METRICS_STATS_ENABLE: "true"
       DD_APM_ENABLED: "false"
       DD_HOSTNAME: "local-datadog-agent"
       DD_BIND_HOST: "0.0.0.0"
+      DD_LOG_LEVEL: "debug"
     ports:
       - "8125:8125/udp"
       - "8126:8126"
@@ -21,3 +23,13 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc/:/host/proc/:ro
       - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
+
+  url-datadog-exporter:
+    build: .
+    container_name: url-datadog-exporter
+    depends_on:
+      - datadog-agent
+    volumes:
+      - ./config.yaml:/app/config.yaml
+    environment:
+      DD_HOSTNAME: url-monitor
