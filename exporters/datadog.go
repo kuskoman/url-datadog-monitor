@@ -16,12 +16,12 @@ type DatadogClient struct {
 
 // NewDatadogClient creates a new DogStatsD client for sending metrics.
 func NewDatadogClient(host string, port int) (*DatadogClient, error) {
-	addr := fmt.Sprintf("%s:%d", host, port)
+	addr := net.JoinHostPort(host, fmt.Sprintf("%d", port))
 	conn, err := net.Dial("udp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to DogStatsD: %w", err)
 	}
-	
+
 	return &DatadogClient{
 		conn:      conn,
 		addr:      addr,
@@ -40,19 +40,19 @@ func (d *DatadogClient) Close() error {
 // send formats and sends a metrics message to DogStatsD.
 func (d *DatadogClient) send(name string, value float64, metricType string, tags []string) error {
 	metricName := d.namespace + name
-	
+
 	var message strings.Builder
 	message.WriteString(metricName)
 	message.WriteString(":")
 	message.WriteString(strconv.FormatFloat(value, 'f', -1, 64))
 	message.WriteString("|")
 	message.WriteString(metricType)
-	
+
 	if len(tags) > 0 {
 		message.WriteString("|#")
 		message.WriteString(strings.Join(tags, ","))
 	}
-	
+
 	_, err := fmt.Fprintf(d.conn, message.String())
 	return err
 }

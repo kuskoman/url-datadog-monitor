@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  datadog-agent:
+    image: gcr.io/datadoghq/agent:latest
+    container_name: datadog-agent
+    restart: unless-stopped
+    environment:
+      DD_API_KEY: "${DD_API_KEY}"
+      DD_SITE: "${DD_SITE:-datadoghq.com}"
+      DD_LOGS_ENABLED: "false"
+      DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL: "false"
+      DD_DOGSTATSD_NON_LOCAL_TRAFFIC: "true"
+      DD_APM_ENABLED: "false"
+      DD_HOSTNAME: "local-datadog-agent"
+      DD_BIND_HOST: "0.0.0.0"
+    ports:
+      - "8125:8125/udp"
+      - "8126:8126"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
