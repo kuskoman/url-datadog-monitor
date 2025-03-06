@@ -40,8 +40,12 @@ cross-build:
 			$(if $(findstring standalone,$(binary)),cmd/standalone/main.go,cmd/operator/main.go); \
 		)\
 	)
-	cd bin/release && find . -type f -not -name "*.exe" -exec chmod +x {} \;
-	cd bin/release && for f in *; do sha256sum "$$f" > "$$f.sha256"; done
+	# Make all files executable (except Windows .exe files)
+	find bin/release -type f -not -name "*.exe" -exec chmod +x {} \;
+	# Generate SHA256 hashes
+	cd bin/release && for f in *; do if [ -f "$$f" ] && [ ! -f "$$f.sha256" ]; then sha256sum "$$f" > "$$f.sha256"; fi; done
+	# Ensure all files are readable
+	chmod -R a+r bin/release
 
 .PHONY: docker-build
 docker-build:

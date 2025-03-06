@@ -64,8 +64,17 @@ jobs:
 
       - name: Build binaries
         run: |
+          # Create directory if it doesn't exist
           mkdir -p bin/release
+          
+          # Run the build and capture exit code
           make cross-build
+          
+          # Verify the build output exists
+          ls -la bin/release
+          
+          # Fix permissions to avoid tar issues
+          chmod -R 755 bin/release
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -88,7 +97,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: binaries
-          path: bin/release/
+          path: bin/release
+      
+      - name: List downloaded artifacts
+        run: |
+          # Debug downloaded content
+          ls -la bin/release
+          # Ensure files are executable
+          chmod -R 755 bin/release
 
       - name: Set version variables
         id: vars
@@ -100,15 +116,25 @@ jobs:
       - name: Generate changelog
         id: changelog
         run: |
-          PREV_TAG=$(git describe --tags --abbrev=0 ${{ github.ref }}^ 2>/dev/null || echo "")
+          # Create a temporary file for the changelog
+          CHANGELOG_FILE=$(mktemp)
+          
+          # Get previous tag or use initial commit if none exists
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [ -z "$PREV_TAG" ]; then
-            git log --pretty=format:"* %s (%h)" > CHANGELOG.md
+            # No previous tag, use all commits
+            git log --pretty=format:"* %s (%h)" > $CHANGELOG_FILE
           else
-            git log --pretty=format:"* %s (%h)" $PREV_TAG..${{ github.ref }} > CHANGELOG.md
+            # Get commits since previous tag
+            git log --pretty=format:"* %s (%h)" $PREV_TAG..${{ github.sha }} > $CHANGELOG_FILE
           fi
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          cat CHANGELOG.md >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          
+          # Escape the content for GitHub Actions
+          CHANGELOG=$(cat $CHANGELOG_FILE)
+          # Use GitHub's special delimiters approach for multiline strings
+          echo "changelog<<CHANGELOG_DELIMITER" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "CHANGELOG_DELIMITER" >> $GITHUB_OUTPUT
 
       - name: Create release
         uses: softprops/action-gh-release@v1
@@ -130,8 +156,7 @@ jobs:
 
             #### Binary
             Download the appropriate binary for your platform below.
-          files: |
-            bin/release/*
+          files: bin/release/*
           draft: false
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
 

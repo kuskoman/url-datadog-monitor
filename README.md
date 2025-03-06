@@ -357,11 +357,16 @@ To create a new release, use the provided script:
 ```
 
 This will:
-1. Create and push a git tag
-2. Trigger the GitHub Actions release workflow
-3. Build binaries for all supported platforms
-4. Build Docker images and push them to GitHub Container Registry
-5. Create a GitHub release with attached binaries
+1. Update the Helm chart version and appVersion to match the release version
+2. Regenerate the Helm chart README with the new version information
+3. Commit these changes to the repository
+4. Create and push a git tag
+5. Trigger the GitHub Actions release workflow, which will:
+   - Build binaries for all supported platforms
+   - Build Docker images and push them to GitHub Container Registry
+   - Create a GitHub release with attached binaries
+
+The script ensures that both the application version and Helm chart version stay in sync, making it easier to track which chart version corresponds to which application release.
 
 ## Project Structure
 
