@@ -15,6 +15,7 @@ type Target struct {
 	Headers  map[string]string `yaml:"headers"`
 	Labels   map[string]string `yaml:"labels"`
 	Interval int               `yaml:"interval"`
+	Timeout  int               `yaml:"timeout"`  // timeout in seconds
 }
 
 // Config represents the structure of config.yaml
@@ -52,6 +53,10 @@ func LoadConfig(path string) (*Config, error) {
 		
 		if cfg.Targets[i].Interval <= 0 {
 			cfg.Targets[i].Interval = 60 // Default to 60 seconds
+		}
+		
+		if cfg.Targets[i].Timeout <= 0 {
+			cfg.Targets[i].Timeout = 10 // Default to 10 seconds timeout
 		}
 		
 		// Set a default name if not provided

@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"io"
 	"log/slog"
 	"net/http"
@@ -129,8 +130,9 @@ func MonitorTarget(client *http.Client, target Target, datadog DatadogClient, lo
 }
 
 // MonitorTargets starts monitoring all targets with their individual intervals.
-func MonitorTargets(cfg *Config, datadog DatadogClient) {
-	client := &http.Client{Timeout: 10 * time.Second}
+// The function will run until the context is canceled.
+func MonitorTargets(ctx context.Context, cfg *Config, datadog DatadogClient) {
+	// We'll create a client for each target with its specific timeout
 	logger := NewJSONLogger()
 	
 	logger.Info("Starting target monitoring",
@@ -146,18 +148,30 @@ func MonitorTargets(cfg *Config, datadog DatadogClient) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 	
-	for range ticker.C {
-		now := time.Now()
-		
-		for _, target := range cfg.Targets {
-			nextCheck, ok := nextChecks[target.Name]
-			if !ok || now.After(nextCheck) {
-				// Time to check this target
-				MonitorTarget(client, target, datadog, logger)
-				
-				// Schedule next check
-				interval := time.Duration(target.Interval) * time.Second
-				nextChecks[target.Name] = now.Add(interval)
+	for {
+		select {
+		case <-ctx.Done():
+			// Context was canceled, time to shut down
+			logger.Info("Stopping target monitoring due to context cancellation")
+			return
+			
+		case now := <-ticker.C:
+			// Process each target to see if it needs checking
+			for _, target := range cfg.Targets {
+				nextCheck, ok := nextChecks[target.Name]
+				if !ok || now.After(nextCheck) {
+					// Create a client with the target's specific timeout
+					client := &http.Client{
+						Timeout: time.Duration(target.Timeout) * time.Second,
+					}
+					
+					// Time to check this target
+					MonitorTarget(client, target, datadog, logger)
+					
+					// Schedule next check
+					interval := time.Duration(target.Interval) * time.Second
+					nextChecks[target.Name] = now.Add(interval)
+				}
 			}
 		}
 	}

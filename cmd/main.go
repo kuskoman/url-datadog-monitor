@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 	"url-datadog-exporter/exporters"
 	"url-datadog-exporter/internal"
 )
@@ -15,6 +18,19 @@ func main() {
 
 	// Create structured logger
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+	// Set up context with cancellation for graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Set up signal handling for graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		sig := <-sigChan
+		logger.Info("Received shutdown signal", slog.String("signal", sig.String()))
+		cancel()
+	}()
 
 	// Load configuration from YAML file
 	cfg, err := internal.LoadConfig(*configPath)
@@ -37,6 +53,8 @@ func main() {
 	logger.Info("Starting URL monitor service", 
 		slog.Int("target_count", len(cfg.Targets)))
 	
-	// Start the monitoring loop
-	internal.MonitorTargets(cfg, dogstatsd)
+	// Start the monitoring loop with context for graceful shutdown
+	internal.MonitorTargets(ctx, cfg, dogstatsd)
+	
+	logger.Info("URL monitor service shutdown complete")
 }

@@ -26,11 +26,20 @@ targets:
       env: "production"
       service: "website"
     interval: 30
+    timeout: 5
   - name: "Httpbin OK"
     url: "http://httpbin.org/status/200"
     interval: 60
+    timeout: 3
     labels:
       env: "testing"
+  - name: "Slow Response"
+    url: "http://httpbin.org/delay/1"
+    interval: 40
+    timeout: 5
+    labels:
+      env: "testing"
+      type: "slow"
 datadog:
   host: "127.0.0.1"
   port: 8125
