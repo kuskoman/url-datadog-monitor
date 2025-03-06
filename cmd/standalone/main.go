@@ -7,18 +7,18 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"url-datadog-monitor/pkg/config"
-	"url-datadog-monitor/pkg/exporter"
-	"url-datadog-monitor/pkg/monitor"
+
+	"github.com/kuskoman/url-datadog-monitor/pkg/config"
+	"github.com/kuskoman/url-datadog-monitor/pkg/exporter"
+	"github.com/kuskoman/url-datadog-monitor/pkg/monitor"
 )
 
-const defaultConfigPath = "config.yaml"
-
 func main() {
-	configPath := flag.String("config", defaultConfigPath, "Path to configuration file")
+	configPath := flag.String("config", "config.yaml", "Path to configuration file")
 	flag.Parse()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	logger.Info("Starting URL monitor in standalone mode")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -38,7 +38,7 @@ func main() {
 	}
 
 	dogstatsd, err := exporter.NewDatadogClient(
-		cfg.Datadog.Host, 
+		cfg.Datadog.Host,
 		cfg.Datadog.Port,
 	)
 	if err != nil {
@@ -47,10 +47,10 @@ func main() {
 	}
 	defer dogstatsd.Close()
 
-	logger.Info("Starting URL monitor service", 
+	logger.Info("Starting URL monitor service",
 		slog.Int("target_count", len(cfg.Targets)))
-	
+
 	monitor.Targets(ctx, cfg, dogstatsd)
-	
+
 	logger.Info("URL monitor service shutdown complete")
 }

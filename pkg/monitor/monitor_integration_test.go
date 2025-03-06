@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"url-datadog-monitor/pkg/config"
+	"github.com/kuskoman/url-datadog-monitor/pkg/config"
 )
 
 // mockDatadogForCancel implements the DatadogClient interface for testing context cancellation
@@ -20,10 +20,8 @@ func (m mockDatadogForCancel) Histogram(name string, value float64, tags []strin
 }
 
 func TestTargets_ContextCancellation(t *testing.T) {
-	// Create a cancelable context
 	ctx, cancel := context.WithCancel(context.Background())
-	
-	// Create a test configuration with targets
+
 	cfg := &config.Config{
 		Targets: []config.Target{
 			{
@@ -34,16 +32,14 @@ func TestTargets_ContextCancellation(t *testing.T) {
 			},
 		},
 	}
-	
-	// Create a mock Datadog client
+
 	mockClient := mockDatadogForCancel{}
-	
-	// Start monitoring in a goroutine
+
 	monitoringDone := make(chan struct{})
 	go func() {
 		// Since we're only testing context cancellation, we'll recover from any panics
 		// that might occur due to a nil logger
-		defer func() { 
+		defer func() {
 			if r := recover(); r != nil {
 				t.Logf("Recovered from panic: %v", r)
 			}
@@ -51,12 +47,10 @@ func TestTargets_ContextCancellation(t *testing.T) {
 		}()
 		Targets(ctx, cfg, mockClient)
 	}()
-	
-	// Cancel the context after a short time
+
 	time.Sleep(100 * time.Millisecond)
 	cancel()
-	
-	// The test passes if Targets returns within a reasonable time
+
 	select {
 	case <-monitoringDone:
 		// Success - monitoring stopped after context cancellation

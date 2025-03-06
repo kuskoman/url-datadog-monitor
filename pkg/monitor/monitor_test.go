@@ -5,11 +5,10 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
-	
-	"url-datadog-monitor/pkg/config"
+
+	"github.com/kuskoman/url-datadog-monitor/pkg/config"
 )
 
-// mockDatadog is a test implementation of the DatadogClient interface
 type mockDatadog struct {
 	gaugesCalled     int
 	lastGaugeName    string
@@ -38,9 +37,7 @@ func (m *mockDatadog) Histogram(name string, value float64, tags []string) error
 }
 
 func TestCheckTarget_Success(t *testing.T) {
-	// Setup a test server that returns 200 OK
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check that headers are properly set
 		if r.Header.Get("User-Agent") == "TestUserAgent" {
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte("OK"))
@@ -51,7 +48,6 @@ func TestCheckTarget_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// Create a test target pointing to our test server
 	target := config.Target{
 		Name:   "Test Target",
 		URL:    server.URL,
@@ -66,11 +62,9 @@ func TestCheckTarget_Success(t *testing.T) {
 	}
 
 	client := &http.Client{Timeout: 1 * time.Second}
-	
-	// Call the function we're testing
+
 	up, status, duration, err := CheckTarget(client, target)
-	
-	// Verify results
+
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -86,20 +80,17 @@ func TestCheckTarget_Success(t *testing.T) {
 }
 
 func TestCheckTarget_Error(t *testing.T) {
-	// Create a target with a URL that will cause an error
 	target := config.Target{
-		Name:   "Invalid Target",
-		URL:    "http://this-does-not-exist.example",
-		Method: "GET",
+		Name:     "Invalid Target",
+		URL:      "http://this-does-not-exist.example",
+		Method:   "GET",
 		Interval: 30,
 	}
 
 	client := &http.Client{Timeout: 1 * time.Second}
-	
-	// Call the function we're testing
+
 	up, _, duration, err := CheckTarget(client, target)
-	
-	// Verify results
+
 	if err == nil {
 		t.Fatalf("Expected an error for invalid URL")
 	}
@@ -112,16 +103,13 @@ func TestCheckTarget_Error(t *testing.T) {
 }
 
 func TestMonitorTarget(t *testing.T) {
-	// Setup a test server with delay
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Add a small delay to ensure non-zero response time
 		time.Sleep(10 * time.Millisecond)
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("OK"))
 	}))
 	defer server.Close()
 
-	// Create a test target
 	target := config.Target{
 		Name:   "Test Monitor",
 		URL:    server.URL,
@@ -132,17 +120,13 @@ func TestMonitorTarget(t *testing.T) {
 		Interval: 30,
 	}
 
-	// Create a mock Datadog client
 	mock := &mockDatadog{}
-	
-	// Create a client and logger
+
 	client := &http.Client{Timeout: 1 * time.Second}
 	logger := NopLogger()
-	
-	// Call the function we're testing
+
 	Target(client, target, mock, logger)
-	
-	// Verify that metrics were sent
+
 	if mock.gaugesCalled != 1 {
 		t.Errorf("Expected 1 gauge call, got %d", mock.gaugesCalled)
 	}
@@ -152,7 +136,7 @@ func TestMonitorTarget(t *testing.T) {
 	if mock.lastGaugeValue != 1.0 {
 		t.Errorf("Expected gauge value 1.0 for success, got %f", mock.lastGaugeValue)
 	}
-	
+
 	if mock.histogramsCalled != 1 {
 		t.Errorf("Expected 1 histogram call, got %d", mock.histogramsCalled)
 	}
@@ -162,8 +146,7 @@ func TestMonitorTarget(t *testing.T) {
 	if mock.lastHistValue <= 0 {
 		t.Errorf("Expected positive response time, got %f", mock.lastHistValue)
 	}
-	
-	// Check that the right tags were sent
+
 	expectedTags := []string{"url:" + server.URL, "name:Test Monitor", "env:test"}
 	for _, expected := range expectedTags {
 		found := false

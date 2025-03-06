@@ -1,0 +1,40 @@
+apiVersion: url-datadog-monitor.kuskoman.github.com/v1
+kind: URLMonitor
+metadata:
+  name: example-com
+spec:
+  url: https://example.com
+  method: GET
+  interval: 30
+  timeout: 5
+  labels:
+    env: production
+    service: website
+  checkCert: true
+  verifyCert: true
+---
+apiVersion: url-datadog-monitor.kuskoman.github.com/v1
+kind: URLMonitor
+metadata:
+  name: google-com
+spec:
+  url: https://google.com
+  interval: 45
+  timeout: 10
+  labels:
+    env: production
+    type: search
+  checkCert: true
+  verifyCert: true
+---
+apiVersion: url-datadog-monitor.kuskoman.github.com/v1
+kind: URLMonitor
+metadata:
+  name: httpbin-ok
+spec:
+  url: http://httpbin.org/status/200
+  interval: 60
+  timeout: 3
+  labels:
+    env: testing
+  checkCert: false

@@ -38,7 +38,7 @@ targets:
       service: "website"
     interval: 30
     timeout: 5
-  - name: "Httpbin OK" 
+  - name: "Httpbin OK"
     url: "http://httpbin.org/status/200"
     interval: 60
     timeout: 3
@@ -143,17 +143,83 @@ The SSL certificate metrics are particularly useful for:
 2. **Tracking certificate validity**: Monitor the `ssl.valid` metric to detect certificate issues
 3. **Visualizing certificate expiry**: Create dashboards showing certificate expiry timelines for all your services
 
-## Building and Running
+## Running Modes
+
+URL Datadog Monitor can be run in two modes:
+
+### 1. Standalone Mode
+
+In standalone mode, the monitor reads a YAML configuration file to determine which URLs to monitor.
 
 ```bash
-# Build the service
-go build -o url-datadog-monitor ./cmd
+# Build the standalone service
+go build -o url-datadog-monitor-standalone ./cmd/standalone
 
-# Run the service
-./url-datadog-monitor
+# Run in standalone mode
+./url-datadog-monitor-standalone -config=/path/to/config.yaml
 ```
 
-Make sure you have the Datadog agent running locally with DogStatsD enabled.
+### 2. Kubernetes Operator Mode
+
+In Kubernetes operator mode, the monitor watches for URLMonitor custom resources and dynamically updates monitoring based on these resources.
+
+```bash
+# Build the operator service
+go build -o url-datadog-monitor-operator ./cmd/operator
+
+# Run as a Kubernetes operator
+./url-datadog-monitor-operator --dogstatsd-host=datadog-agent.monitoring --dogstatsd-port=8125
+```
+
+#### Kubernetes Custom Resources
+
+The operator uses a URLMonitor custom resource definition:
+
+```yaml
+apiVersion: url-datadog-monitor.kuskoman.github.com/v1
+kind: URLMonitor
+metadata:
+  name: example-com
+spec:
+  url: https://example.com
+  method: GET
+  interval: 30
+  timeout: 5
+  labels:
+    env: production
+    service: website
+  checkCert: true
+  verifyCert: true
+```
+
+To deploy the CRD:
+
+```bash
+kubectl apply -f config/crd/bases/url-datadog-monitor.kuskoman.github.com_urlmonitors.yaml
+```
+
+To create a URLMonitor:
+
+```bash
+kubectl apply -f config/samples/urlmonitor_v1_samples.yaml
+```
+
+## Kubernetes API Generation
+
+This project uses [controller-gen](https://github.com/kubernetes-sigs/controller-tools/tree/master/cmd/controller-gen) to generate boilerplate code for Kubernetes CRDs. The CRD types are defined in `pkg/api/v1/types.go`, and the CRD YAML is generated based on those types.
+
+To regenerate the deepcopy methods and CRD manifests after modifying the API types:
+
+```bash
+# Install controller-gen
+go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
+
+# Generate deepcopy methods
+controller-gen object:headerFile=hack/boilerplate.go.txt paths="./pkg/api/..."
+
+# Generate CRDs
+controller-gen crd:trivialVersions=true paths="./pkg/api/..." output:crd:artifacts:config=config/crd/bases
+```
 
 ## Development
 
@@ -161,17 +227,30 @@ Make sure you have the Datadog agent running locally with DogStatsD enabled.
 # Run tests
 go test ./...
 
-# Run with a custom config file
-./url-datadog-monitor -config=/path/to/custom-config.yaml
+# Install the CRD
+kubectl apply -f config/crd/bases/url-datadog-monitor.kuskoman.github.com_urlmonitors.yaml
+
+# Run with a custom config file (standalone mode)
+./url-datadog-monitor-standalone -config=/path/to/custom-config.yaml
+
+# Run as a Kubernetes operator with custom settings
+./url-datadog-monitor-operator --dogstatsd-host=localhost --dogstatsd-port=8125
 ```
 
 ## Project Structure
 
 The project is organized into the following packages:
 
-- `cmd/` - Contains the main application entry point
+- `cmd/` - Contains the main application entry points:
+  - `cmd/standalone/` - Standalone mode implementation with its own main package
+  - `cmd/operator/` - Kubernetes operator mode implementation with its own main package
 - `pkg/` - Contains the core functionality:
+  - `pkg/api/` - Kubernetes API definitions for Custom Resources
   - `pkg/certcheck/` - SSL certificate checking functionality
   - `pkg/config/` - Configuration loading and processing
+  - `pkg/controllers/` - Kubernetes controllers for URLMonitor resources
   - `pkg/exporter/` - Metrics exporting (Datadog implementation)
   - `pkg/monitor/` - URL monitoring and health checking
+- `config/` - Contains configuration files for Kubernetes:
+  - `config/crd/` - Custom Resource Definitions
+  - `config/samples/` - Example resources

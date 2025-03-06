@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 	
-	"url-datadog-monitor/pkg/certcheck"
-	"url-datadog-monitor/pkg/config"
+	"github.com/kuskoman/url-datadog-monitor/pkg/certcheck"
+	"github.com/kuskoman/url-datadog-monitor/pkg/config"
 )
 
 const (
@@ -22,6 +22,12 @@ const (
 	HealthyStatusMax        = 300
 	TickInterval            = 1 * time.Second
 )
+
+// ShouldCheckCertificate determines if a certificate should be checked for a target
+func ShouldCheckCertificate(target config.Target) bool {
+	return strings.HasPrefix(strings.ToLower(target.URL), certcheck.SchemeHTTPS) && 
+		target.CheckCert != nil && *target.CheckCert
+}
 
 // MetricsClient represents the interface for sending metrics
 type MetricsClient interface {
@@ -131,8 +137,7 @@ func Target(client *http.Client, target config.Target, metrics MetricsClient, lo
 		}
 	}
 	
-	if strings.HasPrefix(strings.ToLower(target.URL), certcheck.SchemeHTTPS) && 
-		target.CheckCert != nil && *target.CheckCert {
+	if ShouldCheckCertificate(target) {
 		certDetails, certErr := certcheck.CheckCertificate(target.URL, *target.VerifyCert)
 		
 		if certErr != nil && certDetails == nil {
