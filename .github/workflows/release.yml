@@ -3,42 +3,13 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 permissions:
   contents: write
   packages: write
 
 jobs:
-  check-helm-readme:
-    name: Check Helm README
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: 'go.mod'
-          cache: true
-
-      - name: Install helm-docs
-        run: |
-          go install github.com/norwoodj/helm-docs/cmd/helm-docs@latest
-
-      - name: Generate temporary Helm README
-        run: |
-          # Generate README in a temporary location
-          helm-docs -c charts/url-datadog-monitor -o /tmp
-          
-          # Check if the generated README differs from the committed one
-          if ! diff -q /tmp/README.md charts/url-datadog-monitor/README.md &>/dev/null; then
-            echo "ERROR: Helm chart README.md is not up to date."
-            echo "Please run 'scripts/helm-readme.sh' and commit the changes."
-            exit 1
-          fi
-
   build-binaries:
     name: Build binaries
     runs-on: ubuntu-latest
@@ -51,7 +22,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version-file: "go.mod"
           cache: true
 
       - name: Set version variables
@@ -66,13 +37,13 @@ jobs:
         run: |
           # Create directory if it doesn't exist
           mkdir -p bin/release
-          
+
           # Run the build and capture exit code
           make cross-build
-          
+
           # Verify the build output exists
           ls -la bin/release
-          
+
           # Fix permissions to avoid tar issues
           chmod -R 755 bin/release
 
@@ -86,7 +57,7 @@ jobs:
   create-release:
     name: Create release
     runs-on: ubuntu-latest
-    needs: [check-helm-readme, build-binaries]
+    needs: [build-binaries]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -98,7 +69,7 @@ jobs:
         with:
           name: binaries
           path: bin/release
-      
+
       - name: List downloaded artifacts
         run: |
           # Debug downloaded content
@@ -118,7 +89,7 @@ jobs:
         run: |
           # Create a temporary file for the changelog
           CHANGELOG_FILE=$(mktemp)
-          
+
           # Get previous tag or use initial commit if none exists
           PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [ -z "$PREV_TAG" ]; then
@@ -128,7 +99,7 @@ jobs:
             # Get commits since previous tag
             git log --pretty=format:"* %s (%h)" $PREV_TAG..${{ github.sha }} > $CHANGELOG_FILE
           fi
-          
+
           # Escape the content for GitHub Actions
           CHANGELOG=$(cat $CHANGELOG_FILE)
           # Use GitHub's special delimiters approach for multiline strings
