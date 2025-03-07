@@ -1,6 +1,6 @@
 # url-datadog-monitor
 
-![Version: 0.0.1](https://img.shields.io/badge/Version-0.0.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.0.1](https://img.shields.io/badge/AppVersion-0.0.1-informational?style=flat-square)
+![Version: 0.0.2](https://img.shields.io/badge/Version-0.0.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.0.2](https://img.shields.io/badge/AppVersion-0.0.2-informational?style=flat-square)
 
 A Helm chart for deploying URL Datadog Monitor on Kubernetes
 
@@ -74,10 +74,7 @@ The chart supports two operational modes:
 |-----|------|---------|-------------|
 | affinity | object | `{}` |  |
 | crd.annotations | object | `{}` |  |
-| crd.installSamples | bool | `false` |  |
-| crd.leaderElection.enabled | bool | `false` |  |
-| crd.rbac.create | bool | `true` |  |
-| datadog.host | string | `"datadog.datadog.svc.cluster.local"` |  |
+| datadog.host | string | `"datadog-agent.datadog.svc.cluster.local"` |  |
 | datadog.port | int | `8125` |  |
 | fullnameOverride | string | `""` |  |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
@@ -88,6 +85,9 @@ The chart supports two operational modes:
 | nameOverride | string | `""` |  |
 | nodeSelector | object | `{}` |  |
 | operator.createCRD | bool | `true` |  |
+| operator.installSamples | bool | `true` |  |
+| operator.leaderElection.enabled | bool | `false` |  |
+| operator.rbac.create | bool | `true` |  |
 | podAnnotations | object | `{}` |  |
 | podSecurityContext | object | `{}` |  |
 | probes.liveness.enabled | bool | `true` |  |
@@ -122,7 +122,7 @@ The chart supports two operational modes:
 | sampleURLMonitors[1].spec.method | string | `"GET"` |  |
 | sampleURLMonitors[1].spec.timeout | int | `5` |  |
 | sampleURLMonitors[1].spec.url | string | `"https://google.com"` |  |
-| sampleURLMonitors[1].spec.verifyCert | bool | `true` |  |
+| sampleURLMonitors[1].spec.verifyCert | bool | `false` |  |
 | securityContext.capabilities.drop[0] | string | `"ALL"` |  |
 | securityContext.readOnlyRootFilesystem | bool | `true` |  |
 | securityContext.runAsNonRoot | bool | `true` |  |
