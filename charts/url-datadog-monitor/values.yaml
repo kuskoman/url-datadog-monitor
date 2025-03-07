@@ -76,9 +76,13 @@ operator:
   # Whether to create the Custom Resource Definition
   # Set to false if you want to install CRDs separately or use existing ones
   createCRD: true
+  # Role-based access control settings
   rbac:
     # Whether to create necessary RBAC resources for the operator
     create: true
+    # Whether to install sample URLMonitor resources
+  # Set to true to deploy the sample monitors defined in sampleURLMonitors
+  installSamples: true
   # Leader election for high availability deployments with multiple replicas
   leaderElection:
     # Whether to enable leader election (recommended for HA setups)
@@ -88,10 +92,6 @@ operator:
 crd:
   # Additional annotations for the CRD (Helm hooks are added automatically)
   annotations: {}
-  # Whether to install sample URLMonitor resources
-  # Set to true to deploy the sample monitors defined in sampleURLMonitors
-  installSamples: false
-  # Role-based access control settings
 
 # Sample URLMonitor resources to be created when operator.installSamples is true
 # These samples demonstrate how to monitor different URLs with various settings
