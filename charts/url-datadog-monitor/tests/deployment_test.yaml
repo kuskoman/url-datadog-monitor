@@ -10,9 +10,9 @@ tests:
     asserts:
       - isKind:
           of: Deployment
-      - equal:
+      - matchRegex:
           path: spec.template.spec.containers[0].image
-          value: ghcr.io/kuskoman/url-datadog-monitor:latest-operator-scratch
+          pattern: ghcr.io/kuskoman/url-datadog-monitor:[0-9]+\.[0-9]+\.[0-9]+-operator-scratch
       - contains:
           path: spec.template.spec.containers[0].args
           content: --dogstatsd-host=datadog-agent.datadog
@@ -36,9 +36,9 @@ tests:
     asserts:
       - isKind:
           of: Deployment
-      - equal:
+      - matchRegex:
           path: spec.template.spec.containers[0].image
-          value: ghcr.io/kuskoman/url-datadog-monitor:latest-standalone-scratch
+          pattern: ghcr.io/kuskoman/url-datadog-monitor:[0-9]+\.[0-9]+\.[0-9]+-standalone-scratch
       - contains:
           path: spec.template.spec.containers[0].args
           content: -config=/config/config.yaml

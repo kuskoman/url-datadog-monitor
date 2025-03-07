@@ -343,7 +343,15 @@ Follow these steps to resolve these issues:
    kubectl get clusterrole url-monitor-url-datadog-monitor -o yaml | grep -A10 rules
    ```
 
-7. For production deployments, consider setting `operator.leaderElection.enabled=true` only when deploying multiple replicas.
+7. For production deployments, it's recommended to enable leader election and run multiple replicas:
+  ```bash
+  # Deploy with HA configuration (2 replicas and leader election)
+  helm install url-monitor ./charts/url-datadog-monitor \
+    --set replicaCount=2 \
+    --set operator.leaderElection.enabled=true
+  ```
+  
+Leader election ensures only one instance actively reconciles resources at a time, providing high availability without duplicate processing. The leader holds a lease in the Kubernetes coordination API, and if it fails, another replica automatically takes over.
 
 ### Helm Chart Testing
 

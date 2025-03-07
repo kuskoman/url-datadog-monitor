@@ -5,7 +5,15 @@ metadata:
   labels:
     {{- include "url-datadog-monitor.labels" . | nindent 4 }}
 spec:
+  {{- if and (eq .Values.mode "operator") .Values.operator.leaderElection.enabled }}
+  {{- if eq (.Values.replicaCount | toString) "1" }}
+  replicas: 2
+  {{- else }}
   replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  {{- else }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "url-datadog-monitor.selectorLabels" . | nindent 6 }}

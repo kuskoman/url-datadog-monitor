@@ -86,7 +86,7 @@ The chart supports two operational modes:
 | nodeSelector | object | `{}` |  |
 | operator.createCRD | bool | `true` |  |
 | operator.installSamples | bool | `true` |  |
-| operator.leaderElection.enabled | bool | `false` |  |
+| operator.leaderElection.enabled | bool | `true` |  |
 | operator.rbac.create | bool | `true` |  |
 | podAnnotations | object | `{}` |  |
 | podSecurityContext | object | `{}` |  |
@@ -165,13 +165,26 @@ The chart supports two operational modes:
 - `operator.createCRD`: Whether to create the URLMonitor CRD (set to false if installed separately)
 - `operator.installSamples`: Deploy sample URLMonitor resources
 - `operator.rbac.create`: Create RBAC resources for the operator
-- `operator.leaderElection`: Configuration for leader election in multi-replica deployments
+- `operator.leaderElection.enabled`: Enable leader election for high availability (defaults to true)
+
+#### High Availability Setup
+For production deployments, it's recommended to run multiple replicas with leader election enabled:
+
+```bash
+helm install url-monitor url-datadog-monitor/url-datadog-monitor \
+  --set replicaCount=2 \
+  --set operator.leaderElection.enabled=true
+```
+
+When leader election is enabled, the operator uses Kubernetes leases to elect a leader among the replicas.
+Only the leader will actively reconcile resources, preventing duplicate processing. If the leader fails,
+another replica will take over automatically.
 
 #### Standalone Mode Settings
 - `standalone.config`: Configuration for the standalone mode, with targets to monitor
 
 #### Container Settings
-- `image.tag`: Specify a particular image tag (defaults to appropriate tag for selected mode)
+- `image.tag`: Specify a particular image tag (defaults to AppVersion value combined with mode and base image, e.g. "0.0.2-operator-scratch")
 - `resources`: Configure resource requests and limits
 - `securityContext`: Customize security settings
 

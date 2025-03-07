@@ -68,8 +68,8 @@ Determine the appropriate container image tag
 {{- if .Values.image.tag -}}
 {{ .Values.image.tag }}
 {{- else if eq .Values.mode "operator" -}}
-latest-operator-scratch
+{{ .Chart.AppVersion }}-operator-scratch
 {{- else -}}
-latest-standalone-scratch
+{{ .Chart.AppVersion }}-standalone-scratch
 {{- end -}}
 {{- end -}}

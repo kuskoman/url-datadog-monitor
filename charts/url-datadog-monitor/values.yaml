@@ -7,13 +7,17 @@
 ## Standalone mode: Runs as a standalone application with config file
 mode: operator
 
+# Default replica count
+# For production use with operator mode and leader election, this should be >= 2
+# When leader election is enabled and replicaCount=1, it will automatically be increased to 2
 replicaCount: 1
 
 image:
   # Container image repository
   repository: ghcr.io/kuskoman/url-datadog-monitor
   # Image tag. Can be "standalone-scratch", "operator-scratch", "standalone-alpine", "operator-alpine", etc.
-  # If empty, defaults to appropriate tag for deployment mode (latest-operator-scratch or latest-standalone-scratch)
+  # If empty, defaults to the chart's AppVersion combined with mode and base image
+  # E.g., "0.0.2-operator-scratch" or "0.0.2-standalone-scratch"
   tag: ""
   # Image pull policy
   pullPolicy: IfNotPresent
@@ -86,7 +90,7 @@ operator:
   # Leader election for high availability deployments with multiple replicas
   leaderElection:
     # Whether to enable leader election (recommended for HA setups)
-    enabled: false
+    enabled: true
 
 # CRD configuration
 crd:
