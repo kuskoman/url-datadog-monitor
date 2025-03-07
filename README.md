@@ -296,7 +296,12 @@ helm install url-monitor ./charts/url-datadog-monitor \
 
 #### Troubleshooting Kubernetes Deployment
 
-If you experience issues with the operator mode in Kubernetes:
+If you encounter one of these common errors:
+
+- `failed to get API group resources: unable to retrieve the complete list of server APIs: url-datadog-monitor.kuskoman.github.com/v1: the server could not find the requested resource` - The CRD is not properly registered with the API server.
+- `urlmonitors.url-datadog-monitor.kuskoman.github.com is forbidden: User "system:serviceaccount:xxx" cannot list resource "urlmonitors"` - The service account lacks proper permissions.
+
+Follow these steps to resolve either issue:
 
 1. Ensure the CRD is properly installed and has the correct API group:
    ```bash
@@ -313,7 +318,7 @@ If you experience issues with the operator mode in Kubernetes:
    ```bash
    # Check logs of the main container
    kubectl logs -l app.kubernetes.io/name=url-datadog-monitor
-   
+
    # Check logs from the CRD installation job
    kubectl logs job/url-monitor-url-datadog-monitor-crd-ready
    ```
@@ -332,7 +337,12 @@ If you experience issues with the operator mode in Kubernetes:
    # Should output: True
    ```
 
-6. For production deployments, consider setting `operator.leaderElection.enabled=true` only when deploying multiple replicas.
+6. If you encounter RBAC permission errors, verify that the ClusterRole references the correct API group:
+   ```bash
+   kubectl get clusterrole url-monitor-url-datadog-monitor -o yaml | grep -A10 rules
+   ```
+
+7. For production deployments, consider setting `operator.leaderElection.enabled=true` only when deploying multiple replicas.
 
 ### Helm Chart Testing
 

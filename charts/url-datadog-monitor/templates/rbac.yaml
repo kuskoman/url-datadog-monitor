@@ -18,6 +18,16 @@ rules:
       - create
       - update
       - patch
+      - delete
+  # Allow the job to also check API resources
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -45,7 +55,7 @@ metadata:
     {{- include "url-datadog-monitor.labels" . | nindent 4 }}
 rules:
   - apiGroups:
-      - urlmonitoring.kuskoman.github.com
+      - url-datadog-monitor.kuskoman.github.com
     resources:
       - urlmonitors
       - urlmonitors/status
