@@ -34,7 +34,7 @@ serviceAccount:
 # Reference to Datadog agent for sending metrics
 datadog:
   # Host where Datadog agent is running (Kubernetes service name)
-  host: datadog.datadog.svc.cluster.local
+  host: datadog-agent.datadog.svc.cluster.local
   # Port for the Datadog DogStatsD protocol
   port: 8125
 
