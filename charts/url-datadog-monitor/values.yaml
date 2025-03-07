@@ -52,7 +52,7 @@ standalone:
         User-Agent: "Datadog-Monitor"
       labels:
         app: "url-monitor"
-    
+
     targets:
       - name: "Example Site"
         url: "https://example.com"
@@ -66,7 +66,7 @@ standalone:
         interval: 60
         timeout: 5
         verify_cert: true
-    
+
     datadog:
       host: "${DATADOG_HOST}"
       port: ${DATADOG_PORT}
@@ -76,7 +76,14 @@ operator:
   # Whether to create the Custom Resource Definition
   # Set to false if you want to install CRDs separately or use existing ones
   createCRD: true
-  
+  rbac:
+    # Whether to create necessary RBAC resources for the operator
+    create: true
+  # Leader election for high availability deployments with multiple replicas
+  leaderElection:
+    # Whether to enable leader election (recommended for HA setups)
+    enabled: false
+
 # CRD configuration
 crd:
   # Additional annotations for the CRD (Helm hooks are added automatically)
@@ -85,13 +92,6 @@ crd:
   # Set to true to deploy the sample monitors defined in sampleURLMonitors
   installSamples: false
   # Role-based access control settings
-  rbac:
-    # Whether to create necessary RBAC resources for the operator
-    create: true
-  # Leader election for high availability deployments with multiple replicas
-  leaderElection:
-    # Whether to enable leader election (recommended for HA setups)
-    enabled: false
 
 # Sample URLMonitor resources to be created when operator.installSamples is true
 # These samples demonstrate how to monitor different URLs with various settings
@@ -121,7 +121,8 @@ sampleURLMonitors:
 
 podAnnotations: {}
 
-podSecurityContext: {}
+podSecurityContext:
+  {}
   # fsGroup: 2000
 
 securityContext:
@@ -130,7 +131,7 @@ securityContext:
   readOnlyRootFilesystem: true
   capabilities:
     drop:
-    - ALL
+      - ALL
   # allowPrivilegeEscalation: false
 
 service:
