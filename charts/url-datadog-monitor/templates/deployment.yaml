@@ -87,9 +87,6 @@ spec:
           configMap:
             name: {{ include "url-datadog-monitor.fullname" . }}-config
       {{- end }}
-      # The deployment no longer needs an init container to check for CRDs
-      # This is now handled by the CRD Job which runs as a Helm hook
-      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

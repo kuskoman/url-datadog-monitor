@@ -1,4 +1,4 @@
-{{- if and (eq .Values.mode "operator") .Values.operator.rbac.create -}}
+{{- if and (eq .Values.mode "operator") .Values.crd.rbac.create -}}
 # First, create a special role for the CRD job to manage CRDs
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
