@@ -300,8 +300,9 @@ If you encounter one of these common errors:
 
 - `failed to get API group resources: unable to retrieve the complete list of server APIs: url-datadog-monitor.kuskoman.github.com/v1: the server could not find the requested resource` - The CRD is not properly registered with the API server.
 - `urlmonitors.url-datadog-monitor.kuskoman.github.com is forbidden: User "system:serviceaccount:xxx" cannot list resource "urlmonitors"` - The service account lacks proper permissions.
+- `tls: failed to verify certificate: x509: certificate signed by unknown authority` - The container is missing CA certificates for TLS verification. Either set `verifyCert: false` in your URLMonitor resources or use the updated Docker images that include CA certificates.
 
-Follow these steps to resolve either issue:
+Follow these steps to resolve these issues:
 
 1. Ensure the CRD is properly installed and has the correct API group:
    ```bash

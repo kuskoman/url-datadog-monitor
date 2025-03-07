@@ -6,6 +6,9 @@ ARG VERSION \
 
 WORKDIR /app
 
+# Install SSL certificates
+RUN apk add --no-cache ca-certificates && update-ca-certificates
+
 RUN grep "nobody:x:65534" /etc/passwd > /app/user
 
 COPY go.mod go.sum ./
@@ -25,6 +28,8 @@ FROM scratch as release
 COPY --from=build /app/user /etc/passwd
 COPY --from=build /app/main /app/main
 COPY --from=build /app/config.yaml /app/config.yaml
+# Copy CA certificates for TLS verification
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 EXPOSE 8125
 

@@ -114,7 +114,8 @@ sampleURLMonitors:
       interval: 30
       timeout: 5
       checkCert: true
-      verifyCert: true
+      # For container environments where system CA certs might not be available
+      verifyCert: false
       labels:
         env: production
         service: search
