@@ -398,7 +398,7 @@ make build
 make test
 
 # Install the CRD
-kubectl apply -f config/crd/bases/urlmonitoring.kuskoman.github.com_urlmonitors.yaml
+kubectl apply -f config/crd/bases/url-datadog-monitor.kuskoman.github.com_urlmonitors.yaml
 
 # Run with a custom config file (standalone mode)
 ./bin/url-datadog-monitor-standalone -config=/path/to/custom-config.yaml

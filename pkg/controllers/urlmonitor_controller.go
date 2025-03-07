@@ -186,7 +186,7 @@ func (r *URLMonitorReconciler) monitorURL(ctx context.Context, urlMonitor *urlmo
 						Subject:         certDetails.Subject,
 						Issuer:          certDetails.Issuer,
 						NotAfter:        metav1.NewTime(certDetails.NotAfter),
-						DaysUntilExpiry: daysUntilExpiry,
+						DaysUntilExpiry: fmt.Sprintf("%.2f", daysUntilExpiry),
 					}
 				}
 			}

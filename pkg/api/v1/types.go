@@ -10,6 +10,8 @@ import (
 // +kubebuilder:printcolumn:name="Interval",type=integer,JSONPath=`.spec.interval`
 // +kubebuilder:printcolumn:name="Last Check",type=string,JSONPath=`.status.lastCheckTime`
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.status`
+// +kubebuilder:validation:XValidation:rule="self.spec.timeout < self.spec.interval",message="Timeout must be less than interval"
+// +kubebuilder:validation:XValidation:rule="!has(self.spec.checkCert) || !has(self.spec.verifyCert) || self.spec.url.startsWith('https://')",message="Certificate validation only applies to HTTPS URLs"
 
 // URLMonitor is the Schema for the urlmonitors API
 type URLMonitor struct {
@@ -23,20 +25,25 @@ type URLMonitor struct {
 // URLMonitorSpec defines the desired state of URLMonitor
 type URLMonitorSpec struct {
 	// URL to monitor
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Pattern=`^https?://.*`
 	URL string `json:"url"`
 
 	// HTTP method to use for the request
 	// +kubebuilder:default=GET
+	// +kubebuilder:validation:Enum=GET;POST;PUT;DELETE;HEAD;OPTIONS
 	Method string `json:"method,omitempty"`
 
 	// Interval between checks in seconds
 	// +kubebuilder:default=60
 	// +kubebuilder:validation:Minimum=5
+	// +kubebuilder:validation:Maximum=3600
 	Interval int `json:"interval,omitempty"`
 
 	// Timeout for the HTTP request in seconds
 	// +kubebuilder:default=10
 	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=120
 	Timeout int `json:"timeout,omitempty"`
 
 	// Headers to include in the request
@@ -79,6 +86,7 @@ type URLMonitorStatus struct {
 // CertificateStatus contains information about the SSL certificate
 type CertificateStatus struct {
 	// Whether the certificate is valid
+	// +kubebuilder:validation:Required
 	Valid bool `json:"valid"`
 
 	// Subject of the certificate
@@ -90,8 +98,9 @@ type CertificateStatus struct {
 	// Expiration date of the certificate
 	NotAfter metav1.Time `json:"notAfter,omitempty"`
 
-	// Days until the certificate expires
-	DaysUntilExpiry float64 `json:"daysUntilExpiry,omitempty"`
+	// Days until the certificate expires (as string to avoid float compatibility issues)
+	// Format is a string representation of a float for cross-language compatibility
+	DaysUntilExpiry string `json:"daysUntilExpiry,omitempty"`
 }
 
 // +kubebuilder:object:root=true

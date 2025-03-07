@@ -13,7 +13,7 @@ Sample URL monitors have been created:
 {{- else }}
 To create a URLMonitor resource, use the following as a template:
 
-apiVersion: urlmonitoring.kuskoman.github.com/v1
+apiVersion: url-datadog-monitor.kuskoman.github.com/v1
 kind: URLMonitor
 metadata:
   name: example
