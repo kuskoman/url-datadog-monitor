@@ -1,7 +1,7 @@
 {{- if and (eq .Values.mode "operator") .Values.operator.installSamples -}}
 {{- range .Values.sampleURLMonitors }}
 ---
-apiVersion: urlmonitoring.kuskoman.github.com/v1
+apiVersion: url-datadog-monitor.kuskoman.github.com/v1
 kind: URLMonitor
 metadata:
   name: {{ .name }}

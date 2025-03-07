@@ -48,7 +48,8 @@ spec:
             - "--dogstatsd-port={{ .Values.datadog.port }}"
             {{- if .Values.operator.leaderElection.enabled }}
             - "--leader-elect=true"
-            - "--leader-election-id={{ .Values.operator.leaderElection.resourceName }}"
+            {{- else }}
+            - "--leader-elect=false"
             {{- end }}
           {{- end }}
           ports:
@@ -85,6 +86,9 @@ spec:
         - name: config
           configMap:
             name: {{ include "url-datadog-monitor.fullname" . }}-config
+      {{- end }}
+      # The deployment no longer needs an init container to check for CRDs
+      # This is now handled by the CRD Job which runs as a Helm hook
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

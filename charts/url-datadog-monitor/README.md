@@ -73,6 +73,10 @@ The chart supports two operational modes:
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` |  |
+| crd.annotations | object | `{}` |  |
+| crd.installSamples | bool | `false` |  |
+| crd.leaderElection.enabled | bool | `false` |  |
+| crd.rbac.create | bool | `true` |  |
 | datadog.host | string | `"datadog.datadog.svc.cluster.local"` |  |
 | datadog.port | int | `8125` |  |
 | fullnameOverride | string | `""` |  |
@@ -84,10 +88,6 @@ The chart supports two operational modes:
 | nameOverride | string | `""` |  |
 | nodeSelector | object | `{}` |  |
 | operator.createCRD | bool | `true` |  |
-| operator.installSamples | bool | `false` |  |
-| operator.leaderElection.enabled | bool | `true` |  |
-| operator.leaderElection.resourceName | string | `"url-datadog-monitor-operator"` |  |
-| operator.rbac.create | bool | `true` |  |
 | podAnnotations | object | `{}` |  |
 | podSecurityContext | object | `{}` |  |
 | probes.liveness.enabled | bool | `true` |  |

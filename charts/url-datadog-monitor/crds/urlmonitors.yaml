@@ -1,12 +1,9 @@
-{{- if and (eq .Values.mode "operator") .Values.operator.createCRD -}}
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: urlmonitors.urlmonitoring.kuskoman.github.com
-  labels:
-    {{- include "url-datadog-monitor.labels" . | nindent 4 }}
+  name: urlmonitors.url-datadog-monitor.kuskoman.github.com
 spec:
-  group: urlmonitoring.kuskoman.github.com
+  group: url-datadog-monitor.kuskoman.github.com
   names:
     kind: URLMonitor
     listKind: URLMonitorList
@@ -72,10 +69,45 @@ spec:
               type: object
             status:
               description: URLMonitorStatus defines the observed state of URLMonitor
+              properties:
+                certificate:
+                  description: Certificate information (if HTTPS and certificate checking is enabled)
+                  properties:
+                    daysUntilExpiry:
+                      description: Days until the certificate expires
+                      type: number
+                    issuer:
+                      description: Issuer of the certificate
+                      type: string
+                    notAfter:
+                      description: Expiration date of the certificate
+                      format: date-time
+                      type: string
+                    subject:
+                      description: Subject of the certificate
+                      type: string
+                    valid:
+                      description: Whether the certificate is valid
+                      type: boolean
+                  required:
+                    - valid
+                  type: object
+                lastCheckTime:
+                  description: Last time the URL was checked
+                  format: date-time
+                  type: string
+                responseTime:
+                  description: Response time in milliseconds
+                  type: integer
+                status:
+                  description: Status of the URL (up or down)
+                  type: string
+                statusCode:
+                  description: HTTP status code from the last check
+                  type: integer
               type: object
           type: object
       served: true
       storage: true
       subresources:
         status: {}
-{{- end }}

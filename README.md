@@ -242,7 +242,7 @@ go build -o url-datadog-monitor-operator ./cmd/operator
 The operator uses a URLMonitor custom resource definition:
 
 ```yaml
-apiVersion: urlmonitoring.kuskoman.github.com/v1
+apiVersion: url-datadog-monitor.kuskoman.github.com/v1
 kind: URLMonitor
 metadata:
   name: example-com
@@ -261,7 +261,7 @@ spec:
 To deploy the CRD:
 
 ```bash
-kubectl apply -f config/crd/bases/urlmonitoring.kuskoman.github.com_urlmonitors.yaml
+kubectl apply -f config/crd/bases/url-datadog-monitor.kuskoman.github.com_urlmonitors.yaml
 ```
 
 To create a URLMonitor:
@@ -293,6 +293,46 @@ helm install url-monitor ./charts/url-datadog-monitor \
   --set datadog.host=datadog-agent.datadog.svc.cluster.local \
   --set datadog.port=8125
 ```
+
+#### Troubleshooting Kubernetes Deployment
+
+If you experience issues with the operator mode in Kubernetes:
+
+1. Ensure the CRD is properly installed and has the correct API group:
+   ```bash
+   kubectl get crd urlmonitors.url-datadog-monitor.kuskoman.github.com
+   ```
+
+2. Manually install the CRD first and then install the chart with CRD creation disabled:
+   ```bash
+   kubectl apply -f charts/url-datadog-monitor/crds/urlmonitors.yaml
+   helm install url-monitor ./charts/url-datadog-monitor --set operator.createCRD=false
+   ```
+
+3. Check the logs for any initialization issues:
+   ```bash
+   # Check logs of the main container
+   kubectl logs -l app.kubernetes.io/name=url-datadog-monitor
+   
+   # Check logs from the CRD installation job
+   kubectl logs job/url-monitor-url-datadog-monitor-crd-ready
+   ```
+
+4. If you see errors about missing API resources, uninstall the chart, manually apply the CRD, and then reinstall:
+   ```bash
+   helm uninstall url-monitor
+   kubectl apply -f charts/url-datadog-monitor/crds/urlmonitors.yaml
+   # Wait a few seconds for the CRD to be fully established
+   helm install url-monitor ./charts/url-datadog-monitor --set operator.createCRD=false
+   ```
+
+5. Verify the CRD is established and ready:
+   ```bash
+   kubectl get crd urlmonitors.url-datadog-monitor.kuskoman.github.com -o jsonpath='{.status.conditions[?(@.type=="Established")].status}'
+   # Should output: True
+   ```
+
+6. For production deployments, consider setting `operator.leaderElection.enabled=true` only when deploying multiple replicas.
 
 ### Helm Chart Testing
 
