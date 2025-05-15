@@ -76,6 +76,21 @@ func CheckTarget(client *http.Client, target config.Target) (bool, int, time.Dur
 
 // Target checks a single target and reports its status to the metrics client.
 func Target(client *http.Client, target config.Target, metrics MetricsClient, logger *slog.Logger) {
+	// Validate target before proceeding
+	if target.URL == "" {
+		logger.Error("Invalid target: URL is empty", 
+			slog.String("target", target.Name))
+		return
+	}
+
+	// Validate method
+	if target.Method == "" {
+		logger.Warn("Target has empty method, defaulting to GET",
+			slog.String("target", target.Name),
+			slog.String("url", target.URL))
+		target.Method = "GET"
+	}
+
 	up, status, duration, err := CheckTarget(client, target)
 	ms := float64(duration.Milliseconds())
 	
@@ -138,39 +153,51 @@ func Target(client *http.Client, target config.Target, metrics MetricsClient, lo
 	}
 	
 	if ShouldCheckCertificate(target) {
-		certDetails, certErr := certcheck.CheckCertificate(target.URL, *target.VerifyCert)
-		
-		if certErr != nil && certDetails == nil {
-			logger.Error("Failed to check certificate",
-				slog.String("target", target.Name),
-				slog.String("url", target.URL),
-				slog.Any("error", certErr))
-		} else if certDetails != nil {
-			certcheck.LogCertificateInfo(logger, target.URL, certDetails)
-			
-			daysUntilExpiry := time.Until(certDetails.NotAfter).Hours() / 24
-			
-			if metrics != nil {
-				certVal := 0.0
-				if certDetails.IsValid {
-					certVal = 1.0
-				}
-				
-				if err := metrics.Gauge(MetricSSLValid, certVal, tags); err != nil {
-					logger.Warn("Failed to send ssl.valid metric", 
+		// Use a separate try-catch block to prevent crashes during certificate checking
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					logger.Error("Panic occurred during certificate check",
 						slog.String("target", target.Name),
 						slog.String("url", target.URL),
-						slog.Any("error", err))
+						slog.Any("panic", r))
 				}
+			}()
+			
+			certDetails, certErr := certcheck.CheckCertificate(target.URL, *target.VerifyCert)
+			
+			if certErr != nil && certDetails == nil {
+				logger.Error("Failed to check certificate",
+					slog.String("target", target.Name),
+					slog.String("url", target.URL),
+					slog.Any("error", certErr))
+			} else if certDetails != nil {
+				certcheck.LogCertificateInfo(logger, target.URL, certDetails)
 				
-				if err := metrics.Gauge(MetricSSLDaysToExpiry, daysUntilExpiry, tags); err != nil {
-					logger.Warn("Failed to send ssl.days_until_expiry metric", 
-						slog.String("target", target.Name),
-						slog.String("url", target.URL),
-						slog.Any("error", err))
+				daysUntilExpiry := time.Until(certDetails.NotAfter).Hours() / 24
+				
+				if metrics != nil {
+					certVal := 0.0
+					if certDetails.IsValid {
+						certVal = 1.0
+					}
+					
+					if err := metrics.Gauge(MetricSSLValid, certVal, tags); err != nil {
+						logger.Warn("Failed to send ssl.valid metric", 
+							slog.String("target", target.Name),
+							slog.String("url", target.URL),
+							slog.Any("error", err))
+					}
+					
+					if err := metrics.Gauge(MetricSSLDaysToExpiry, daysUntilExpiry, tags); err != nil {
+						logger.Warn("Failed to send ssl.days_until_expiry metric", 
+							slog.String("target", target.Name),
+							slog.String("url", target.URL),
+							slog.Any("error", err))
+					}
 				}
 			}
-		}
+		}()
 	}
 }
 
