@@ -25,3 +25,5 @@ go.work.sum
 
 # Local markdown files
 C*.md
+
+**/values.shift4.yaml
