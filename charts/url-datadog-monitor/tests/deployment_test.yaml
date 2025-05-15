@@ -12,7 +12,7 @@ tests:
           of: Deployment
       - matchRegex:
           path: spec.template.spec.containers[0].image
-          pattern: ghcr.io/kuskoman/url-datadog-monitor:[0-9]+\.[0-9]+\.[0-9]+-operator-scratch
+          pattern: ghcr.io/kuskoman/url-datadog-monitor:v[0-9]+\.[0-9]+\.[0-9]+-operator-scratch
       - contains:
           path: spec.template.spec.containers[0].args
           content: --dogstatsd-host=datadog-agent.datadog
@@ -27,7 +27,7 @@ tests:
       # In operator mode, we should not have volumes
       - isNull:
           path: spec.template.spec.volumes
-  
+
   - it: should render deployment correctly in standalone mode
     set:
       mode: standalone
