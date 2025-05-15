@@ -277,19 +277,23 @@ The project includes a Helm chart to easily deploy URL Datadog Monitor in Kubern
 ### Installing with Helm
 
 ```bash
-# Add the Helm repository (when published)
-# helm repo add url-datadog-monitor https://kuskoman.github.io/url-datadog-monitor
-# helm repo update
+# Add the Helm repository
+helm repo add url-datadog-monitor https://kuskoman.github.io/url-datadog-monitor
+helm repo update
 
-# For now, install from local chart
 # Operator Mode (Default)
-helm install url-monitor ./charts/url-datadog-monitor \
+helm install url-monitor url-datadog-monitor/url-datadog-monitor \
   --set datadog.host=datadog-agent.datadog.svc.cluster.local \
   --set datadog.port=8125
 
 # Standalone Mode
-helm install url-monitor ./charts/url-datadog-monitor \
+helm install url-monitor url-datadog-monitor/url-datadog-monitor \
   --set mode=standalone \
+  --set datadog.host=datadog-agent.datadog.svc.cluster.local \
+  --set datadog.port=8125
+
+# Alternatively, install from local chart
+helm install url-monitor ./charts/url-datadog-monitor \
   --set datadog.host=datadog-agent.datadog.svc.cluster.local \
   --set datadog.port=8125
 ```
@@ -369,6 +373,20 @@ The GitHub CI pipeline also tests the Helm chart in a real Kubernetes environmen
 
 See the [Helm chart README](./charts/url-datadog-monitor/README.md) for more details on available options and configurations.
 
+### Helm Chart Repository
+
+The Helm chart is hosted on GitHub Pages at https://kuskoman.github.io/url-datadog-monitor. The repository is automatically updated whenever a new tag is pushed to the repository.
+
+To view available chart versions:
+
+```bash
+# After adding the repository
+helm repo update
+helm search repo url-datadog-monitor -l
+```
+
+Each application version has a corresponding chart version, making it easy to deploy specific releases.
+
 ## Kubernetes API Generation
 
 This project uses [controller-gen](https://github.com/kubernetes-sigs/controller-tools/tree/master/cmd/controller-gen) to generate boilerplate code for Kubernetes CRDs. The CRD types are defined in `pkg/api/v1/types.go`, and the CRD YAML is generated based on those types.
@@ -424,6 +442,9 @@ This will:
    - Build binaries for all supported platforms
    - Build Docker images and push them to GitHub Container Registry
    - Create a GitHub release with attached binaries
+   - Package and publish the Helm chart to GitHub Pages
+
+The automated GitHub Pages deployment makes the Helm chart available at https://kuskoman.github.io/url-datadog-monitor, allowing users to easily install the chart using the Helm CLI.
 
 The script ensures that both the application version and Helm chart version stay in sync, making it easier to track which chart version corresponds to which application release.
 

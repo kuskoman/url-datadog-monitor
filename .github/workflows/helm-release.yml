@@ -1,0 +1,111 @@
+name: Helm Chart Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  release-chart:
+    name: Release Helm Chart
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set version variables
+        id: vars
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          # Remove 'v' prefix for chart version
+          CHART_VERSION=${VERSION#v}
+          echo "CHART_VERSION=$CHART_VERSION" >> $GITHUB_ENV
+
+      - name: Update chart version
+        run: |
+          # Update Chart.yaml with new version
+          sed -i "s/^version:.*/version: $CHART_VERSION/" charts/url-datadog-monitor/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"$VERSION\"/" charts/url-datadog-monitor/Chart.yaml
+          # Show the changes
+          cat charts/url-datadog-monitor/Chart.yaml
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'latest'
+
+      - name: Configure Git
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Package Helm chart
+        run: |
+          mkdir -p .cr-release-packages
+          helm package charts/url-datadog-monitor -d .cr-release-packages
+
+      - name: Setup chart-releaser
+        uses: helm/chart-releaser-action@v1.6.0
+        with:
+          charts_dir: charts
+          config: .github/cr-config.yaml
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          CR_SKIP_EXISTING: true
+
+      - name: Create gh-pages branch if it doesn't exist
+        run: |
+          if ! git ls-remote --heads origin gh-pages; then
+            git checkout --orphan gh-pages
+            git rm -rf .
+            git commit --allow-empty -m "Initial gh-pages branch"
+            git push origin gh-pages
+            git checkout -
+          fi
+
+      - name: Update Helm repository index
+        run: |
+          # Create a temporary working directory
+          TMP_DIR=$(mktemp -d)
+          CHART_PATH="$TMP_DIR/helm-charts"
+          mkdir -p "$CHART_PATH"
+          
+          # Clone the gh-pages branch
+          git clone --branch gh-pages --single-branch "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" "$CHART_PATH"
+          
+          # Copy the packaged chart to the repo directory
+          cp .cr-release-packages/*.tgz "$CHART_PATH/"
+          
+          # Generate or update the index file
+          cd "$CHART_PATH"
+          if [ -f "index.yaml" ]; then
+            helm repo index . --url "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}" --merge index.yaml
+          else
+            helm repo index . --url "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          fi
+          
+          # Commit and push the changes
+          git add .
+          git commit -m "Release chart ${{ env.VERSION }}"
+          git push
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .cr-release-packages/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
