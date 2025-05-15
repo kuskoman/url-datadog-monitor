@@ -73,11 +73,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	eventRecorder := mgr.GetEventRecorderFor("url-datadog-monitor")
+
 	reconciler := controllers.NewURLMonitorReconciler(
 		mgr.GetClient(),
 		mgr.GetScheme(),
 		dogstatsd,
 		setupLog,
+		eventRecorder,
 	)
 
 	if err = reconciler.SetupWithManager(mgr); err != nil {
@@ -85,7 +88,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Add health check endpoints
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error("Unable to set up health check", slog.Any("error", err))
 		os.Exit(1)

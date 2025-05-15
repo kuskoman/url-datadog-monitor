@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -25,9 +26,10 @@ import (
 // URLMonitorReconciler reconciles a URLMonitor object
 type URLMonitorReconciler struct {
 	client.Client
-	Scheme        *runtime.Scheme
-	MetricsClient exporter.MetricsExporter
-	Logger        *slog.Logger
+	Scheme              *runtime.Scheme
+	MetricsClient       exporter.MetricsExporter
+	Logger              *slog.Logger
+	KubernetesEventRecorder record.EventRecorder
 
 	// Map to track active monitors
 	monitors     map[string]context.CancelFunc
@@ -35,18 +37,20 @@ type URLMonitorReconciler struct {
 }
 
 // NewURLMonitorReconciler creates a new reconciler for URLMonitor resources
-func NewURLMonitorReconciler(client client.Client, scheme *runtime.Scheme, metricsClient exporter.MetricsExporter, logger *slog.Logger) *URLMonitorReconciler {
+func NewURLMonitorReconciler(client client.Client, scheme *runtime.Scheme, metricsClient exporter.MetricsExporter, logger *slog.Logger, eventRecorder record.EventRecorder) *URLMonitorReconciler {
 	return &URLMonitorReconciler{
-		Client:        client,
-		Scheme:        scheme,
-		MetricsClient: metricsClient,
-		Logger:        logger,
-		monitors:      make(map[string]context.CancelFunc),
+		Client:                client,
+		Scheme:                scheme,
+		MetricsClient:         metricsClient,
+		Logger:                logger,
+		KubernetesEventRecorder: eventRecorder,
+		monitors:              make(map[string]context.CancelFunc),
 	}
 }
 
 // +kubebuilder:rbac:groups=url-datadog-monitor.kuskoman.github.com,resources=urlmonitors,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=url-datadog-monitor.kuskoman.github.com,resources=urlmonitors/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // Reconcile implements the reconciliation loop for URLMonitor resources
 func (r *URLMonitorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -59,10 +63,16 @@ func (r *URLMonitorReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request
-			r.stopMonitoring(req.String())
+			monitorKey := req.String()
+			r.Logger.Info("URLMonitor resource was deleted", slog.String("monitor", monitorKey))
+			
+			// We can't record a K8s event for a deleted object, but we can log it
+			r.stopMonitoring(monitorKey)
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request
+		r.KubernetesEventRecorder.Event(urlMonitor, "Warning", "ReconcileError", 
+			fmt.Sprintf("Failed to reconcile URLMonitor: %v", err))
 		return ctrl.Result{}, err
 	}
 
@@ -83,6 +93,10 @@ func (r *URLMonitorReconciler) startOrUpdateMonitoring(ctx context.Context, urlM
 	r.monitorsLock.Lock()
 	r.monitors[monitorKey] = cancel
 	r.monitorsLock.Unlock()
+
+	// Record an event for the monitoring start
+	r.KubernetesEventRecorder.Event(urlMonitor, "Normal", "MonitoringStarted", 
+		fmt.Sprintf("Starting URL monitoring for %s with %d second interval", urlMonitor.Spec.URL, urlMonitor.Spec.Interval))
 
 	// Start monitoring in a separate goroutine
 	go func() {
@@ -111,6 +125,9 @@ func (r *URLMonitorReconciler) stopMonitoring(key string) {
 		cancel()
 		delete(r.monitors, key)
 		r.Logger.Info("Stopped monitoring", slog.String("monitor", key))
+		
+		// We can't record an event here because we don't have the URLMonitor object
+		// Events for stopping will be recorded in the Reconcile method when a resource is being deleted
 	}
 }
 
@@ -158,12 +175,30 @@ func (r *URLMonitorReconciler) monitorURL(ctx context.Context, urlMonitor *urlmo
 				r.Logger.Warn("Error checking URL",
 					slog.String("url", target.URL),
 					slog.Any("error", err))
+				
+				// Record a warning event for the error
+				r.KubernetesEventRecorder.Event(urlMonitor, "Warning", "MonitorCheckError", 
+					fmt.Sprintf("Error checking URL %s: %v", target.URL, err))
 			} else {
 				statusUpdate.StatusCode = status
 				if up {
 					statusUpdate.Status = "Up"
+					
+					// Record normal event for successful check (but not too frequently)
+					if statusUpdate.StatusCode >= 200 && statusUpdate.StatusCode < 300 {
+						// Only record events for successful checks occasionally to avoid flooding
+						if time.Now().Minute()%10 == 0 { // Record once every ~10 minutes
+							r.KubernetesEventRecorder.Event(urlMonitor, "Normal", "URLStatusUp", 
+								fmt.Sprintf("URL %s is up with status code %d (response time: %dms)", 
+									target.URL, status, duration.Milliseconds()))
+						}
+					}
 				} else {
 					statusUpdate.Status = "Down"
+					
+					// Always record events for down status
+					r.KubernetesEventRecorder.Event(urlMonitor, "Warning", "URLStatusDown", 
+						fmt.Sprintf("URL %s is down with status code %d", target.URL, status))
 				}
 			}
 
@@ -175,6 +210,16 @@ func (r *URLMonitorReconciler) monitorURL(ctx context.Context, urlMonitor *urlmo
 					certVal := 0.0
 					if certDetails.IsValid {
 						certVal = 1.0
+					} else {
+						// Record an event for invalid certificate
+						r.KubernetesEventRecorder.Event(urlMonitor, "Warning", "InvalidCertificate", 
+							fmt.Sprintf("SSL certificate for %s is invalid", target.URL))
+					}
+
+					// Record event if certificate is expiring soon (less than 14 days)
+					if daysUntilExpiry < 14 {
+						r.KubernetesEventRecorder.Event(urlMonitor, "Warning", "CertificateExpiringSoon", 
+							fmt.Sprintf("SSL certificate for %s expires in %.1f days", target.URL, daysUntilExpiry))
 					}
 
 					_ = r.MetricsClient.Gauge(monitor.MetricSSLValid, certVal, tags)
@@ -197,6 +242,10 @@ func (r *URLMonitorReconciler) monitorURL(ctx context.Context, urlMonitor *urlmo
 					slog.String("name", urlMonitor.Name),
 					slog.String("namespace", urlMonitor.Namespace),
 					slog.Any("error", err))
+				
+				// Record event for status update failure
+				r.KubernetesEventRecorder.Event(urlMonitor, "Warning", "StatusUpdateFailed", 
+					fmt.Sprintf("Failed to update URLMonitor status: %v", err))
 			}
 		}
 	}
