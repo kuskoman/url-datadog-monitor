@@ -3,7 +3,7 @@ entries:
   url-datadog-monitor:
   - apiVersion: v2
     appVersion: v0.0.5
-    created: "2025-05-15T12:11:23.655381157Z"
+    created: "2025-05-15T12:11:24.529438913Z"
     description: A Helm chart for deploying URL Datadog Monitor on Kubernetes
     digest: ef178ed0a8179e17da9c8366d597f02101c31f8e74b7e9b11e36b974bbfed9c3
     home: https://github.com/kuskoman/url-datadog-monitor
@@ -20,7 +20,7 @@ entries:
     - https://github.com/kuskoman/url-datadog-monitor
     type: application
     urls:
-    - url-datadog-monitor-0.0.5.tgz
+    - https://kuskoman.github.io/url-datadog-monitor/url-datadog-monitor-0.0.5.tgz
     version: 0.0.5
   - apiVersion: v2
     appVersion: v0.0.4
@@ -43,4 +43,4 @@ entries:
     urls:
     - url-datadog-monitor-0.0.4.tgz
     version: 0.0.4
-generated: "2025-05-15T12:11:23.655392498Z"
+generated: "2025-05-15T12:11:24.528504311Z"
