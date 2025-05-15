@@ -1,0 +1,25 @@
+apiVersion: v1
+entries:
+  url-datadog-monitor:
+  - apiVersion: v2
+    appVersion: v0.0.4
+    created: "2025-05-15T12:03:40.403141741Z"
+    description: A Helm chart for deploying URL Datadog Monitor on Kubernetes
+    digest: ae168bc95d257cff7972bfefb36bcca221cb07f4e12dfed74487e4f778019249
+    home: https://github.com/kuskoman/url-datadog-monitor
+    keywords:
+    - monitoring
+    - datadog
+    - url-monitor
+    - kubernetes-operator
+    maintainers:
+    - name: kuskoman
+      url: https://github.com/kuskoman
+    name: url-datadog-monitor
+    sources:
+    - https://github.com/kuskoman/url-datadog-monitor
+    type: application
+    urls:
+    - url-datadog-monitor-0.0.4.tgz
+    version: 0.0.4
+generated: "2025-05-15T12:03:40.403152771Z"
