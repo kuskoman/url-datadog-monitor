@@ -2,8 +2,8 @@ apiVersion: v2
 name: url-datadog-monitor
 description: A Helm chart for deploying URL Datadog Monitor on Kubernetes
 type: application
-version: 0.0.3
-appVersion: "0.0.3"
+version: 0.0.4
+appVersion: "0.0.4"
 home: https://github.com/kuskoman/url-datadog-monitor
 sources:
   - https://github.com/kuskoman/url-datadog-monitor
